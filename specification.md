@@ -60,6 +60,7 @@
 
 4. **Feedback Animation**:
    - Visual feedback (such as a glow or burst) when a new combination is discovered or when an action is performed successfully.
+   
 
 ---
 
@@ -109,3 +110,140 @@
 #### **LLM Integration**:
 - Query LLM for new combinations only when no pre-existing recipe exists in the database.
 - Store LLM responses in the database for future reuse.
+
+# Infinite Alchemist UI Specification
+
+## Overall Layout
+- Dark theme with black background (#000000) and white/gray text
+- Stars or dots scattered across the background creating a space-like effect
+- Main game area occupies the central space
+- Fixed header at top
+- Sidebar menu on the right
+- Control icons at bottom
+
+## Header (Top)
+- Game title "Infinite Alchemist" positioned in top-right corner
+
+## Main Game Area (Center)
+- Interactive space showing element combinations
+- Elements displayed as rounded rectangular buttons
+- Each element button contains:
+  - An emoji/icon on the left
+  - Element name in white text
+  - Dark, semi-transparent background
+- Elements connected by thin white lines
+- Elements can be dragged and dropped to combine
+
+## Sidebar (Right)
+- Fixed width panel containing all discovered elements
+- Organized in a grid of element buttons
+- Each button shows:
+  - Element emoji/icon
+  - Element name
+  - Consistent styling with main game elements
+- Categories include:
+  - Basic elements (Water, Fire, Wind, Earth)
+  - Natural phenomena (Rainbow, Storm, Rain)
+  - Geographical features (Mountain, Lake, Ocean)
+  - Living things (Fish, Dragon)
+  - Locations (Hawaii, California, America)
+  - And many more derived elements
+
+## Bottom Control Bar
+- Left side:
+  - Reset button
+- Right side:
+  - Dark/Light mode toggle
+  - Sound toggle
+  - Volume control
+  - Trash bin icon for deleting elements
+
+## Search Function
+- Search bar at bottom
+- Shows total number of discoverable items (648 shown in screenshot)
+- Placeholder text: "Search (648) items..."
+
+## Additional Features
+- "Discoveries" toggle button
+- "Sort by time" option
+- Dark/light mode functionality
+
+## Element Button Styling
+- Rounded corners (approximately 4-8px radius)
+- Padding around text and icon
+- Semi-transparent dark background
+- Icon on left, text on right
+- Hover effects (likely a subtle highlight)
+
+## Typography
+- Clean, sans-serif font family
+- White text on dark backgrounds
+- Consistent text size hierarchy:
+  - Larger for header elements
+  - Medium for element names
+  - Smaller for UI controls and search
+
+## Interactive Elements
+- Draggable elements
+- Clickable buttons
+- Hover states on interactive elements
+- Clear visual feedback for combinations
+
+## Color Scheme
+- Primary background: Black
+- Text: White
+- UI elements: Semi-transparent white/gray
+- Interactive elements: Various colors for different element types
+- Accent colors: Used sparingly for special elements or states
+
+### **Implementation Plan**
+
+#### **Phase 1: Initial Setup**
+1. **Backend Setup**:
+   - Set up a Python environment.
+   - Install FastAPI and SQLite.
+   - Create initial database schema for storing recipes and player data.
+
+2. **Frontend Setup**:
+   - Set up a React project.
+   - Install necessary libraries: React Context API, Framer Motion, React DnD, Tailwind CSS.
+
+3. **LLM Integration**:
+   - Set up API endpoints in FastAPI for querying the LLM.
+   - Implement logic to store and retrieve combinations from the database.
+
+#### **Phase 2: Core Features Development**
+1. **Core Gameplay Mechanics**:
+   - Implement drag-and-drop functionality for combining elements.
+   - Develop the logic for querying the database and LLM for new combinations.
+   - Implement feedback animations for new discoveries.
+
+2. **UI/UX Design**:
+   - Design the Workbench and Library interfaces.
+   - Implement the customization menu and feedback animations.
+
+3. **State Management**:
+   - Use React Context API to manage game state.
+   - Implement LocalStorage for session persistence.
+
+#### **Phase 3: Testing and Refinement**
+1. **Testing**:
+   - Conduct unit tests for backend API endpoints.
+   - Perform integration tests for frontend and backend interactions.
+   - User testing for UI/UX feedback.
+
+2. **Refinement**:
+   - Optimize database queries and LLM interactions.
+   - Refine UI/UX based on user feedback.
+   - Ensure smooth drag-and-drop functionality and animations.
+
+#### **Phase 4: Deployment and Future Expansion**
+1. **Deployment**:
+   - Deploy the backend using a suitable hosting service.
+   - Deploy the frontend using a static site hosting service.
+   - Ensure database is properly configured for initial launch.
+
+2. **Future Expansion**:
+   - Plan for transitioning to a cloud-based database solution.
+   - Implement more advanced customization options and game modes.
+   - Continuously update the game based on player feedback and new feature requests.
