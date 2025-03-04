@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-primary text-text;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer components {
+  .element-card {
+    @apply bg-secondary rounded-lg p-3 flex items-center gap-2 cursor-pointer transition-all duration-200 hover:bg-accent;
+  }
+  
+  .element-emoji {
+    @apply text-2xl;
+  }
+  
+  .element-name {
+    @apply text-sm font-medium;
+  }
+  
+  .workbench {
+    @apply bg-secondary/30 rounded-xl p-6 min-h-[400px] relative;
+  }
+  
+  .library {
+    @apply bg-secondary/50 rounded-xl p-4;
+  }
+  
+  .btn {
+    @apply px-4 py-2 rounded-lg bg-accent text-text transition-all duration-200 hover:bg-accent/80;
+  }
+  
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700;
+  }
+  
+  .input {
+    @apply bg-secondary text-text px-4 py-2 rounded-lg border border-accent focus:outline-none focus:border-blue-500;
+  }
+}
+
+/* Stars background animation */
+.stars {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background-color: white;
+  border-radius: 50%;
+  opacity: 0.5;
+}

@@ -52,7 +52,10 @@
 
 3. **Customization Menu**:
    - **Nickname input**: Players can enter a nickname, stored locally (no login required).
-   - **Language selection**: Choose interface language at the start or via the settings menu.
+   - **Language selection**: 
+     - Initial release will support English only.
+     - Russian language support will be added in a subsequent update.
+     - Language can be chosen at the start or via the settings menu.
    - **Game Mode**:
      - **Classic Mode**: Start with four basic elements.
      - **Custom Mode**: Start with a limited pool of similar elements (as a challenge).
@@ -247,3 +250,32 @@
    - Plan for transitioning to a cloud-based database solution.
    - Implement more advanced customization options and game modes.
    - Continuously update the game based on player feedback and new feature requests.
+
+### **Technology Stack and Library Versions**
+
+#### **Backend**
+- **Python**: 3.10+
+- **FastAPI**: 0.104.0
+- **Uvicorn**: 0.23.2 (ASGI server)
+- **SQLite**: 3.42.0
+- **SQLAlchemy**: 2.0.23 (ORM)
+- **Pydantic**: 2.4.2 (data validation)
+- **Python-dotenv**: 1.0.0 (environment variables)
+- **Langchain**: 0.0.335 (for LLM abstraction)
+- HF API
+
+#### **Frontend**
+- **Node.js**: 18.18.0+
+- **React**: 18.2.0
+- **Vite**: 4.5.0 (build tool)
+- **React Router**: 6.18.0
+- **React DnD**: 16.0.1 (drag and drop)
+- **Framer Motion**: 10.16.4 (animations)
+- **Tailwind CSS**: 3.3.5
+- **Axios**: 1.6.0 (HTTP client)
+- **Zustand**: 4.4.6 (state management)
+- **i18next**: 23.6.0 (internationalization)
+- **React-i18next**: 13.3.1 (React bindings for i18next)
+- **Jest**: 29.7.0 (testing)
+- **React Testing Library**: 14.1.0 (component testing)
+
