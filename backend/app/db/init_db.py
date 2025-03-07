@@ -1,23 +1,23 @@
 from sqlalchemy.orm import Session
 from app.db.database import SessionLocal, Base, engine
-from app.models.element import Element, PlayerStats, player_elements
+from app.models.element import DBElement, PlayerStats, player_elements
 
 # Create tables
 Base.metadata.create_all(bind=engine)
 
 # Basic elements to initialize
 BASIC_ELEMENTS = [
-    {"name": "Water", "emoji": "💧", "description": "A clear, colorless liquid essential for life.", "is_basic": 1},
-    {"name": "Fire", "emoji": "🔥", "description": "The rapid oxidation of material producing heat and light.", "is_basic": 1},
-    {"name": "Earth", "emoji": "🌍", "description": "The solid ground beneath us and the material that forms it.", "is_basic": 1},
-    {"name": "Air", "emoji": "💨", "description": "The invisible mixture of gases that surrounds the planet.", "is_basic": 1},
+    {"name": "Water", "emoji": "💧", "description": "A clear, colorless liquid essential for life.", "is_basic": True},
+    {"name": "Fire", "emoji": "🔥", "description": "The rapid oxidation of material producing heat and light.", "is_basic": True},
+    {"name": "Earth", "emoji": "🌍", "description": "The solid ground beneath us and the material that forms it.", "is_basic": True},
+    {"name": "Air", "emoji": "💨", "description": "The invisible mixture of gases that surrounds the planet.", "is_basic": True},
 ]
 
 def init_db():
     db = SessionLocal()
     try:
         # Check if we already have elements
-        existing_count = db.query(Element).count()
+        existing_count = db.query(DBElement).count()
         if existing_count > 0:
             print(f"Database already contains {existing_count} elements. Skipping initialization.")
             return
@@ -25,7 +25,7 @@ def init_db():
         # Add basic elements
         basic_element_ids = []
         for element_data in BASIC_ELEMENTS:
-            element = Element(**element_data)
+            element = DBElement(**element_data)
             db.add(element)
             db.flush()  # Flush to get the ID
             basic_element_ids.append(element.id)
@@ -60,7 +60,7 @@ def add_basic_elements_to_player(player_name: str):
     db = SessionLocal()
     try:
         # Get basic elements
-        basic_elements = db.query(Element).filter(Element.is_basic == 1).all()
+        basic_elements = db.query(DBElement).filter(DBElement.is_basic == True).all()
         
         # Get or create player
         player = db.query(PlayerStats).filter(PlayerStats.player_name == player_name).first()

@@ -41,6 +41,9 @@
      - **Left-click** to drag elements from the Library to the Workbench.
      - **Right-click** to duplicate an element for quicker combination testing.
      - **No visual clues** for potential combinations to maintain the discovery aspect.
+     - **Elements stay where they are placed** on the workbench until moved or removed.
+     - **Combination occurs** only when one element is dropped directly on top of another.
+     - **No limit** to the number of elements that can be placed on the workbench simultaneously.
    - **Design**: Clean, minimalistic interface with a subtle background pattern to keep focus on the elements.
 
 2. **Library ("Discovered Elements")**:
@@ -279,3 +282,305 @@
 - **Jest**: 29.7.0 (testing)
 - **React Testing Library**: 14.1.0 (component testing)
 
+# Backend Architecture Specification
+
+## Overview
+
+## Core Components
+
+### 1. API Layer
+
+The API layer serves as the interface between the frontend and the backend services. It is implemented using FastAPI, providing a RESTful API with the following characteristics:
+
+- **OpenAPI Documentation**: Auto-generated API documentation
+- **Request Validation**: Using Pydantic models
+- **Authentication**: JWT-based authentication for future user accounts
+- **CORS Support**: Configured for frontend access
+- **Rate Limiting**: To prevent abuse of LLM services
+
+#### Exposed Endpoints
+
+| Endpoint | Method | Description | Request Body | Response |
+|----------|--------|-------------|--------------|----------|
+| `/api/elements` | GET | Get all elements with pagination | - | List of elements |
+| `/api/elements/{element_id}` | GET | Get element by ID | - | Element details |
+| `/api/elements/combine` | POST | Combine two elements | `{element1_id, element2_id, player_name}` | Combination result |
+| `/api/elements/basic` | GET | Get all basic elements | - | List of basic elements |
+| `/api/players/{player_name}` | GET | Get player profile | - | Player details |
+| `/api/players/{player_name}/elements` | GET | Get elements discovered by player | - | List of elements |
+| `/api/players/{player_name}/stats` | GET | Get player statistics | - | Player stats |
+| `/api/discoveries` | GET | Get recent discoveries | - | List of discoveries |
+| `/api/discoveries/{player_name}` | GET | Get discoveries by player | - | List of discoveries |
+| `/api/settings` | GET | Get game settings | - | Game settings |
+
+### 2. Service Layer
+
+The service layer contains the business logic of the application, separated into distinct services with specific responsibilities:
+
+#### LLM Service
+
+The LLM Service is responsible for generating new elements through combinations. It is designed to be model-agnostic, supporting multiple LLM providers.
+
+**Key Features:**
+- **Provider Abstraction**: Common interface for different LLM providers
+- **Prompt Management**: Templates for element generation in multiple languages
+- **Response Parsing**: Extracting structured data from LLM responses
+- **Caching**: Storing previous responses to reduce API calls
+- **Fallback Mechanisms**: Handling service outages or rate limits
+
+**Supported Providers:**
+- OpenAI (GPT models)
+- Hugging Face (Various models)
+- Local models (future support)
+
+#### Element Service
+
+The Element Service manages the game's elements, their properties, and relationships.
+
+**Key Features:**
+- **Element CRUD**: Create, read, update, and delete elements
+- **Element Relationships**: Managing parent-child relationships between elements
+- **Element Search**: Finding elements by name, properties, or relationships
+- **Element Validation**: Ensuring element data integrity
+
+#### Combination Service
+
+The Combination Service handles the logic of combining elements and determining the results.
+
+**Key Features:**
+- **Combination Processing**: Handling element combination requests
+- **Result Determination**: Using the LLM service to generate new elements
+- **Combination History**: Tracking previous combinations
+- **Combination Rules**: Applying game rules to combinations
+
+#### Player Service
+
+The Player Service manages player data, progress, and statistics.
+
+**Key Features:**
+- **Player Profiles**: Managing player information
+- **Progress Tracking**: Recording discovered elements
+- **Statistics**: Calculating and updating player statistics
+- **Settings Management**: Handling player preferences
+
+#### Cache Service
+
+The Cache Service provides caching capabilities to improve performance and reduce LLM API calls.
+
+**Key Features:**
+- **Response Caching**: Storing LLM responses
+- **Cache Invalidation**: Managing cache lifecycle
+- **Distributed Caching**: Supporting Redis for scalability
+- **Cache Statistics**: Monitoring cache performance
+
+### 3. Data Layer
+
+The data layer is responsible for data persistence and retrieval, using SQLAlchemy as the ORM with SQLite as the database.
+
+#### Database Schema
+
+**Elements Table**
+```
+elements
+├── id (PK)
+├── name (Unique)
+├── emoji
+├── is_basic (Boolean)
+├── created_at (DateTime)
+└── created_by (String, nullable)
+```
+
+**Element Combinations Table**
+```
+element_combinations
+├── element1_id (PK, FK -> elements.id)
+├── element2_id (PK, FK -> elements.id)
+├── result_id (PK, FK -> elements.id)
+├── created_at (DateTime)
+└── discovered_by (String, nullable)
+```
+
+**Player Elements Table**
+```
+player_elements
+├── player_name (PK)
+├── element_id (PK, FK -> elements.id)
+└── unlocked_at (DateTime)
+```
+
+**Player Stats Table**
+```
+player_stats
+├── id (PK)
+├── player_name (Unique)
+├── elements_discovered (Integer)
+├── elements_unlocked (Integer)
+├── combinations_tried (Integer)
+├── successful_combinations (Integer)
+├── failed_combinations (Integer)
+├── last_active (DateTime)
+└── created_at (DateTime)
+```
+
+**Discovery History Table**
+```
+discovery_history
+├── id (PK)
+├── element_id (FK -> elements.id)
+├── player_name (String)
+├── discovered_at (DateTime)
+└── is_first_discovery (Boolean)
+```
+
+#### Data Access Layer
+
+The data access layer provides an abstraction over the database operations:
+
+- **Repositories**: Classes that handle database operations for specific entities
+- **Unit of Work**: Managing transaction boundaries
+- **Query Objects**: Encapsulating complex queries
+- **Data Mappers**: Converting between database models and domain objects
+
+### 4. Core Layer
+
+The core layer contains application-wide utilities and configurations:
+
+- **Configuration Management**: Loading and validating configuration
+- **Logging**: Centralized logging setup
+- **Error Handling**: Global exception handling
+- **Security**: Authentication and authorization utilities
+- **Internationalization**: Language support utilities
+
+## Cross-Cutting Concerns
+
+### Caching Strategy
+
+The caching strategy is designed to minimize LLM API calls and improve response times:
+
+1. **LLM Response Caching**:
+   - Cache key: Combination of element IDs and language
+   - Cache duration: Indefinite (permanent recipes)
+   - Cache backend: Redis (primary), in-memory (fallback)
+
+2. **Element Data Caching**:
+   - Cache key: Element ID or name
+   - Cache duration: Short-term (minutes)
+   - Cache backend: In-memory
+
+3. **Player Data Caching**:
+   - Cache key: Player name
+   - Cache duration: Medium-term (hours)
+   - Cache backend: Redis
+
+### Error Handling
+
+The error handling strategy ensures robust operation and meaningful feedback:
+
+1. **API Errors**:
+   - Standardized error responses with HTTP status codes
+   - Detailed error messages for debugging
+   - Client-friendly error messages for production
+
+2. **LLM Service Errors**:
+   - Retry mechanism for transient errors
+   - Fallback to alternative providers
+   - Graceful degradation when services are unavailable
+
+3. **Database Errors**:
+   - Transaction rollback on failure
+   - Connection retry for transient errors
+   - Data validation before persistence
+
+### Internationalization
+
+The internationalization strategy supports multiple languages:
+
+1. **LLM Prompts**:
+   - Language-specific prompt templates
+   - Cultural context awareness
+   - Consistent terminology across languages
+
+2. **API Responses**:
+   - Language parameter for text-based responses
+   - Consistent data structure across languages
+   - Default language fallback
+
+3. **Error Messages**:
+   - Translated error messages
+   - Language-specific validation messages
+   - Cultural sensitivity in messaging
+
+## Data Flow
+
+### Element Combination Flow
+
+1. **Frontend Request**:
+   - User combines two elements
+   - Frontend sends element IDs and player name to `/api/elements/combine`
+
+2. **API Layer**:
+   - Validates request data
+   - Passes data to Combination Service
+
+3. **Combination Service**:
+   - Checks if combination exists in database
+   - If exists, returns cached result
+   - If not, requests new combination from LLM Service
+
+4. **LLM Service**:
+   - Checks cache for previous identical request
+   - If cached, returns cached response
+   - If not cached:
+     - Retrieves element details
+     - Constructs prompt with element information
+     - Sends prompt to LLM provider
+     - Parses response to extract new element
+     - Caches response for future requests
+
+5. **Combination Service (continued)**:
+   - Creates new element in database if needed
+   - Records combination in database
+   - Updates player statistics
+   - Records discovery history
+
+6. **API Layer (response)**:
+   - Formats response with combination result
+   - Includes flags for new discovery and first discovery
+   - Returns response to frontend
+
+### Player Progress Flow
+
+1. **Frontend Request**:
+   - Frontend requests player elements from `/api/players/{player_name}/elements`
+
+2. **API Layer**:
+   - Validates player name
+   - Passes request to Player Service
+
+3. **Player Service**:
+   - Retrieves player profile
+   - If player doesn't exist, creates new profile
+   - Retrieves player's discovered elements
+
+4. **API Layer (response)**:
+   - Formats response with player elements
+   - Returns response to frontend
+
+## Future Expansion
+
+The architecture is designed to support future expansion:
+
+1. **User Authentication**:
+   - JWT-based authentication
+   - User registration and login
+   - Social authentication
+
+2. **Multiplayer Features**:
+   - Real-time updates via WebSockets
+   - Collaborative discovery
+   - Leaderboards and achievements
+
+3. **Advanced Game Modes**:
+   - Custom starting elements
+   - Challenge modes
+   - Time-limited modes

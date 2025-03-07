@@ -25,6 +25,35 @@ player_elements = Table(
     Column("unlocked_at", DateTime(timezone=True), server_default=func.now()),
 )
 
+class DBElement(Base):
+    """SQLAlchemy model for the elements table."""
+    __tablename__ = "elements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+    emoji = Column(String, default="✨")
+    description = Column(String, default="")
+    is_basic = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_by = Column(String, nullable=True)
+    
+    # Relationships
+    discovered_by = relationship("DiscoveryHistory", back_populates="element")
+    
+    def __repr__(self):
+        return f"<Element(id={self.id}, name='{self.name}')>"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the database model to a dictionary."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "emoji": self.emoji,
+            "description": self.description,
+            "is_basic": self.is_basic,
+            "created_by": self.created_by,
+        }
+
 @dataclass
 class Element:
     """Model representing an element in the game."""
@@ -91,7 +120,7 @@ class DiscoveryHistory(Base):
     is_first_discovery = Column(Boolean, default=False)  # Whether this was the first global discovery
     
     # Relationship to the element
-    element = relationship("Element")
+    element = relationship("DBElement", back_populates="discovered_by")
     
     def __repr__(self):
         return f"<DiscoveryHistory(element_id={self.element_id}, player_name='{self.player_name}')>" 

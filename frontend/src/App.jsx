@@ -5,37 +5,60 @@ import { AnimatePresence } from 'framer-motion';
 import Workbench from './components/workbench/Workbench';
 import Library from './components/library/Library';
 import Settings from './components/ui/Settings';
+import DiscoveryNotification from './components/ui/DiscoveryNotification';
+import StarsBackground from './components/ui/StarsBackground';
 import useElementStore from './store/elementStore';
 import useSettingsStore from './store/settingsStore';
 
 function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [discoveryNotification, setDiscoveryNotification] = useState(null);
   const { fetchElements, addBasicElements } = useElementStore();
-  const { playerName } = useSettingsStore();
+  const { playerName, darkMode } = useSettingsStore();
 
   // Fetch elements on mount
   useEffect(() => {
-    fetchElements();
+    console.log('Fetching elements...');
+    fetchElements().then(() => {
+      console.log('Elements fetched successfully');
+      console.log('Current elements in store:', useElementStore.getState().elements);
+    }).catch(error => {
+      console.error('Error fetching elements:', error);
+    });
   }, [fetchElements]);
 
   // Add basic elements to discovered elements if none exist
   useEffect(() => {
     const discoveredElements = useElementStore.getState().discoveredElements;
+    console.log('Current discovered elements:', discoveredElements);
     if (discoveredElements.length === 0) {
+      console.log('No discovered elements, adding basic elements...');
       addBasicElements();
+      console.log('Basic elements added:', useElementStore.getState().discoveredElements);
     }
   }, [addBasicElements]);
 
+  // Handle new element discovery
+  const handleDiscovery = (discovery) => {
+    console.log('New discovery:', discovery);
+    if (discovery && discovery.is_new_discovery) {
+      setDiscoveryNotification(discovery);
+    }
+  };
+
+  // Clear discovery notification
+  const clearDiscoveryNotification = () => {
+    setDiscoveryNotification(null);
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="min-h-screen bg-primary text-text">
+      <div className={`min-h-screen ${darkMode ? 'bg-primary' : 'bg-gray-100'} ${darkMode ? 'text-text' : 'text-gray-900'} transition-colors duration-300`}>
         {/* Stars background */}
-        <div className="stars">
-          {/* Stars would be added dynamically with JavaScript */}
-        </div>
+        {darkMode && <StarsBackground />}
         
         {/* Header */}
-        <header className="p-4 border-b border-accent">
+        <header className={`p-4 border-b ${darkMode ? 'border-accent' : 'border-gray-200'}`}>
           <div className="container mx-auto flex justify-between items-center">
             <h1 className="text-2xl font-bold">Infinite Alchemist</h1>
             
@@ -47,7 +70,7 @@ function App() {
               )}
               
               <button 
-                className="btn"
+                className={`btn ${darkMode ? 'bg-accent hover:bg-accent/80' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
                 onClick={() => setIsSettingsOpen(true)}
               >
                 Settings
@@ -58,12 +81,12 @@ function App() {
         
         {/* Main content */}
         <main className="container mx-auto p-4">
-          <Workbench />
+          <Workbench onDiscovery={handleDiscovery} />
           <Library />
         </main>
         
         {/* Footer */}
-        <footer className="p-4 border-t border-accent mt-8">
+        <footer className={`p-4 border-t ${darkMode ? 'border-accent' : 'border-gray-200'} mt-8`}>
           <div className="container mx-auto text-center text-sm text-textSecondary">
             <p>Infinite Alchemist &copy; 2025</p>
             <p className="mt-1">Combine elements to discover the world!</p>
@@ -79,6 +102,12 @@ function App() {
             />
           )}
         </AnimatePresence>
+
+        {/* Discovery notification */}
+        <DiscoveryNotification 
+          discovery={discoveryNotification} 
+          onClose={clearDiscoveryNotification} 
+        />
       </div>
     </DndProvider>
   );

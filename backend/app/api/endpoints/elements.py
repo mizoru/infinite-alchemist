@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.db.database import get_db
-from app.models.element import Element, element_combinations, PlayerStats, DiscoveryHistory, player_elements
+from app.models.element import DBElement, element_combinations, PlayerStats, DiscoveryHistory, player_elements
 from app.schemas.element import ElementCreate, Element as ElementSchema, ElementList, CombinationRequest, CombinationResponse, PlayerElementList
 from app.services.llm_service import LLMService
 
@@ -15,8 +15,23 @@ def get_elements(skip: int = 0, limit: int = 100, db: Session = Depends(get_db))
     """
     Get all elements with pagination.
     """
-    elements = db.query(Element).offset(skip).limit(limit).all()
-    return {"elements": elements}
+    elements = db.query(DBElement).offset(skip).limit(limit).all()
+    
+    # Convert elements to dictionaries to handle the discovered_by relationship
+    element_dicts = []
+    for element in elements:
+        element_dict = {
+            "id": element.id,
+            "name": element.name,
+            "emoji": element.emoji,
+            "description": element.description,
+            "is_basic": element.is_basic,
+            "created_at": element.created_at,
+            "discovered_by": None  # Set discovered_by to None for now
+        }
+        element_dicts.append(element_dict)
+    
+    return {"elements": element_dicts}
 
 @router.get("/player/{player_name}", response_model=PlayerElementList)
 def get_player_elements(player_name: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -32,31 +47,57 @@ def get_player_elements(player_name: str, skip: int = 0, limit: int = 100, db: S
         db.refresh(player)
     
     # Get all elements unlocked by the player
-    elements = db.query(Element).join(
+    elements = db.query(DBElement).join(
         player_elements, 
-        Element.id == player_elements.c.element_id
+        DBElement.id == player_elements.c.element_id
     ).filter(
         player_elements.c.player_name == player_name
     ).offset(skip).limit(limit).all()
     
-    return {"elements": elements}
+    # Convert elements to dictionaries to handle the discovered_by relationship
+    element_dicts = []
+    for element in elements:
+        element_dict = {
+            "id": element.id,
+            "name": element.name,
+            "emoji": element.emoji,
+            "description": element.description,
+            "is_basic": element.is_basic,
+            "created_at": element.created_at,
+            "discovered_by": None  # Set discovered_by to None for now
+        }
+        element_dicts.append(element_dict)
+    
+    return {"elements": element_dicts}
 
 @router.get("/{element_id}", response_model=ElementSchema)
 def get_element(element_id: int, db: Session = Depends(get_db)):
     """
     Get a specific element by ID.
     """
-    element = db.query(Element).filter(Element.id == element_id).first()
+    element = db.query(DBElement).filter(DBElement.id == element_id).first()
     if element is None:
         raise HTTPException(status_code=404, detail="Element not found")
-    return element
+    
+    # Convert element to dictionary to handle the discovered_by relationship
+    element_dict = {
+        "id": element.id,
+        "name": element.name,
+        "emoji": element.emoji,
+        "description": element.description,
+        "is_basic": element.is_basic,
+        "created_at": element.created_at,
+        "discovered_by": None  # Set discovered_by to None for now
+    }
+    
+    return element_dict
 
 @router.post("/", response_model=ElementSchema)
 def create_element(element: ElementCreate, db: Session = Depends(get_db)):
     """
     Create a new element.
     """
-    db_element = Element(
+    db_element = DBElement(
         name=element.name,
         emoji=element.emoji,
         description=element.description,
@@ -73,8 +114,8 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
     Combine two elements to create a new one or get an existing combination.
     """
     # Get the elements from the database
-    element1 = db.query(Element).filter(Element.id == combination.element1_id).first()
-    element2 = db.query(Element).filter(Element.id == combination.element2_id).first()
+    element1 = db.query(DBElement).filter(DBElement.id == combination.element1_id).first()
+    element2 = db.query(DBElement).filter(DBElement.id == combination.element2_id).first()
     
     if not element1 or not element2:
         raise HTTPException(status_code=404, detail="One or both elements not found")
@@ -93,7 +134,7 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
     
     # If the combination exists, return the result
     if existing_combination:
-        result_element = db.query(Element).filter(Element.id == existing_combination.result_id).first()
+        result_element = db.query(DBElement).filter(DBElement.id == existing_combination.result_id).first()
         
         # Check if this is a new unlock for the player
         is_new_unlock = False
@@ -107,7 +148,15 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
             "element1_id": combination.element1_id,
             "element2_id": combination.element2_id,
             "result_id": result_element.id,
-            "result": result_element,
+            "result": {
+                "id": result_element.id,
+                "name": result_element.name,
+                "emoji": result_element.emoji,
+                "description": result_element.description,
+                "is_basic": result_element.is_basic,
+                "created_at": result_element.created_at,
+                "discovered_by": None  # Set discovered_by to None for now
+            },
             "is_new_discovery": False,
             "is_first_discovery": False
         }
@@ -116,13 +165,13 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
     llm_result = llm_service.combine_elements(element1.name, element2.name)
     
     # Check if the resulting element already exists
-    result_element = db.query(Element).filter(Element.name == llm_result["result"]).first()
+    result_element = db.query(DBElement).filter(DBElement.name == llm_result["result"]).first()
     is_new_discovery = False
     is_first_discovery = False
     
     # If the resulting element doesn't exist, create it
     if not result_element:
-        result_element = Element(
+        result_element = DBElement(
             name=llm_result["result"],
             emoji=llm_result["emoji"],
             description=llm_result["description"],
@@ -163,11 +212,20 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
     )
     db.commit()
     
+    # Return the combination result
     return {
         "element1_id": combination.element1_id,
         "element2_id": combination.element2_id,
         "result_id": result_element.id,
-        "result": result_element,
+        "result": {
+            "id": result_element.id,
+            "name": result_element.name,
+            "emoji": result_element.emoji,
+            "description": result_element.description,
+            "is_basic": result_element.is_basic,
+            "created_at": result_element.created_at,
+            "discovered_by": None  # Set discovered_by to None for now
+        },
         "is_new_discovery": is_new_discovery,
         "is_first_discovery": is_first_discovery
     }

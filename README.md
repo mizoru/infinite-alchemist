@@ -61,10 +61,7 @@ Infinite Alchemist is a game where players combine elements to discover new ones
    pip install -r requirements.txt
    ```
 
-5. Create a `.env` file with your OpenAI API key:
-   ```
-   OPENAI_API_KEY=your_api_key_here
-   ```
+5. Create a `.env` file with your LLM API key.
 
 6. Initialize the database:
    ```
@@ -125,10 +122,6 @@ infinite-alchemist/
 ├── README.md
 └── TODO.md
 ```
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Acknowledgments
 

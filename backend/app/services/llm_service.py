@@ -149,7 +149,6 @@ For invalid combinations:
 ```json
 {{
 "valid": false,
-"reason": "Brief explanation of why this combination is impossible"
 }}
 ```
 

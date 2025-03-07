@@ -47,27 +47,3 @@ For invalid combinations:
   "reason": "Brief explanation of why this combination is impossible"
 }
 ```
-
-## Testing
-
-The following test scripts are available for testing the LLM service:
-
-- `test_refusals.py`: Tests the LLM's ability to refuse nonsensical combinations
-- `test_game_api.py`: Tests the game API with a mock LLM service
-
-To run the tests, use the following commands:
-
-```bash
-python -m app.scripts.test_refusals
-python -m app.scripts.test_game_api
-```
-
-## Rules for Valid Combinations
-
-The LLM service uses the following rules to determine if a combination is valid:
-
-1. Elements can ONLY be combined if they have a logical relationship.
-2. Physical elements (like Water, Fire, Earth) can be combined with other physical elements.
-3. Abstract concepts (like Love, Democracy, Philosophy) CANNOT be combined with physical elements.
-4. Elements from completely different domains with no connection CANNOT be combined.
-5. Combinations that violate the laws of physics or common sense are NOT allowed. 

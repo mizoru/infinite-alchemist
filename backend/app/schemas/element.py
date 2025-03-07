@@ -1,12 +1,12 @@
-from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel, Field
+from typing import Optional, List, Union
 from datetime import datetime
 
 class ElementBase(BaseModel):
     name: str
     emoji: Optional[str] = None
     description: Optional[str] = None
-    is_basic: int = 0
+    is_basic: Union[int, bool] = False
 
 class ElementCreate(ElementBase):
     pass
@@ -31,6 +31,7 @@ class Element(ElementBase):
 
     class Config:
         from_attributes = True
+        arbitrary_types_allowed = True
 
 # Update forward references
 CombinationResponse.model_rebuild()
