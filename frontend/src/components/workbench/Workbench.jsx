@@ -103,15 +103,17 @@ const WorkbenchElement = ({ element, position, onDragEnd, onDrop, onDuplicate, o
     }
     
     // If not dropped on another element, just update the position
+    // Use the offset property from the drag info, which is relative to the initial position
     const newPosition = { 
-      x: info.point.x - workbenchRef.current.getBoundingClientRect().left, 
-      y: info.point.y - workbenchRef.current.getBoundingClientRect().top 
+      x: elementPosition.x + info.delta.x,
+      y: elementPosition.y + info.delta.y
     };
     
     // Ensure the position is within the workbench bounds
     const workbenchRect = workbenchRef.current.getBoundingClientRect();
-    newPosition.x = Math.max(0, Math.min(newPosition.x, workbenchRect.width));
-    newPosition.y = Math.max(0, Math.min(newPosition.y, workbenchRect.height));
+    const elementRect = ref.current.getBoundingClientRect();
+    newPosition.x = Math.max(0, Math.min(newPosition.x, workbenchRect.width - elementRect.width));
+    newPosition.y = Math.max(0, Math.min(newPosition.y, workbenchRect.height - elementRect.height));
     
     console.log('New position calculated:', newPosition);
     setElementPosition(newPosition);
