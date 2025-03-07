@@ -152,7 +152,7 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
                 "id": result_element.id,
                 "name": result_element.name,
                 "emoji": result_element.emoji,
-                "description": result_element.description,
+                "description": "",
                 "is_basic": result_element.is_basic,
                 "created_at": result_element.created_at,
                 "discovered_by": None  # Set discovered_by to None for now
@@ -174,7 +174,7 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
         result_element = DBElement(
             name=llm_result["result"],
             emoji=llm_result["emoji"],
-            description=llm_result["description"],
+            description="",
             discovered_by=combination.player_name
         )
         db.add(result_element)
@@ -221,7 +221,7 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
             "id": result_element.id,
             "name": result_element.name,
             "emoji": result_element.emoji,
-            "description": result_element.description,
+            "description": "",
             "is_basic": result_element.is_basic,
             "created_at": result_element.created_at,
             "discovered_by": None  # Set discovered_by to None for now

@@ -123,6 +123,43 @@ infinite-alchemist/
 └── TODO.md
 ```
 
+## Key Components
+
+### Element Store
+
+The Element Store is a central state management system built with Zustand that handles all element-related data in the application. It's responsible for:
+
+1. **Storing Elements**: Maintains a list of all elements and discovered elements
+2. **Fetching Elements**: Communicates with the backend API to retrieve elements
+3. **Combining Elements**: Handles the logic for combining elements and updating the state
+4. **Error Handling**: Provides fallback mechanisms when the backend is unavailable
+5. **Persistence**: Saves the user's discovered elements to localStorage
+
+The Element Store provides methods like:
+- `fetchElements()`: Loads elements from the backend
+- `combineElements()`: Combines two elements to create a new one
+- `getElementById()`: Retrieves a specific element by ID
+- `addBasicElements()`: Adds the basic elements to the discovered elements list
+
+This centralized approach ensures consistent state management across the application and simplifies the component logic.
+
+### Workbench Component
+
+The Workbench is the main interactive area where users can:
+- Place elements by dragging from the Library or clicking on them
+- Move elements around freely
+- Combine elements by dropping one on top of another
+
+It uses React DnD for drag and drop functionality and Framer Motion for animations.
+
+### Library Component
+
+The Library displays all discovered elements and allows users to:
+- Search for specific elements
+- Sort elements by different criteria
+- Filter elements by category
+- Drag elements to the Workbench or click to add them
+
 ## Acknowledgments
 
 - Inspired by [Infinite Craft](https://neal.fun/infinite-craft/)

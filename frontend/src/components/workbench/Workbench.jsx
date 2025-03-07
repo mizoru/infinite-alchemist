@@ -7,6 +7,12 @@ import useSettingsStore from '../../store/settingsStore';
 
 const WorkbenchElement = ({ element, position, onDragEnd, onDrop }) => {
   const ref = useRef(null);
+  const [elementPosition, setElementPosition] = useState(position);
+  
+  // Update position when the prop changes
+  useEffect(() => {
+    setElementPosition(position);
+  }, [position]);
   
   // Set up drop functionality for this element
   const [{ isOver }, drop] = useDrop(() => ({
@@ -31,13 +37,20 @@ const WorkbenchElement = ({ element, position, onDragEnd, onDrop }) => {
   // Set up the drag ref
   drop(ref);
   
+  // Handle drag end
+  const handleDragEnd = (event, info) => {
+    const newPosition = { x: elementPosition.x + info.offset.x, y: elementPosition.y + info.offset.y };
+    setElementPosition(newPosition);
+    onDragEnd(element.workbenchId, newPosition);
+  };
+  
   return (
     <motion.div
       ref={ref}
       className={`absolute cursor-move ${isOver ? 'ring-2 ring-green-500' : ''}`}
       style={{ 
-        left: position.x, 
-        top: position.y,
+        left: elementPosition.x, 
+        top: elementPosition.y,
         zIndex: 1 
       }}
       initial={{ scale: 0 }}
@@ -47,7 +60,7 @@ const WorkbenchElement = ({ element, position, onDragEnd, onDrop }) => {
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
       dragElastic={0.1}
       dragMomentum={false}
-      onDragEnd={(e, info) => onDragEnd(element.workbenchId, info.point)}
+      onDragEnd={handleDragEnd}
       whileDrag={{ zIndex: 1000, scale: 1.05 }}
     >
       <Element element={element} size="large" />
@@ -185,13 +198,34 @@ const Workbench = ({ onDiscovery }) => {
   // Update element position when dragged
   const updateElementPosition = (workbenchId, newPosition) => {
     console.log('Updating position for element:', workbenchId, 'to:', newPosition);
-    setElementsOnWorkbench(
-      elementsOnWorkbench.map(el => 
-        el.workbenchId === workbenchId 
-          ? { ...el, position: newPosition } 
-          : el
-      )
-    );
+    
+    // Make sure the position is within the workbench boundaries
+    if (workbenchRef.current) {
+      const rect = workbenchRef.current.getBoundingClientRect();
+      
+      // Adjust position if needed to keep element within bounds
+      const adjustedPosition = {
+        x: Math.max(0, Math.min(newPosition.x, rect.width - 100)),
+        y: Math.max(0, Math.min(newPosition.y, rect.height - 100))
+      };
+      
+      setElementsOnWorkbench(
+        elementsOnWorkbench.map(el => 
+          el.workbenchId === workbenchId 
+            ? { ...el, position: adjustedPosition } 
+            : el
+        )
+      );
+    } else {
+      // If workbenchRef is not available, just update the position
+      setElementsOnWorkbench(
+        elementsOnWorkbench.map(el => 
+          el.workbenchId === workbenchId 
+            ? { ...el, position: newPosition } 
+            : el
+        )
+      );
+    }
   };
 
   // Handle element combination

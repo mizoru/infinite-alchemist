@@ -45,6 +45,7 @@
 - [x] Add automatic refetching of elements when not found in store
 - [x] Add mock data for offline/error scenarios
 - [x] Implement graceful error handling for backend failures
+- [x] Fix element dragging on the workbench
 
 ### Integration
 - [x] Connect frontend with backend API
@@ -163,6 +164,11 @@
    - Added graceful error handling for backend failures
    - Created fallback elements when the backend can't be reached
    - Ensured the application works even without a backend connection
+8. Fixed element dragging on the workbench:
+   - Implemented local state for element positions
+   - Added proper handling of drag events
+   - Ensured elements stay within the workbench boundaries
+   - Fixed the issue with elements jumping randomly when dragged
 
 ### Current Status
 - Backend API is now functioning correctly after fixing the SQLAlchemy and Pydantic validation errors
@@ -170,5 +176,6 @@
 - Basic elements are now visible in the library component
 - Workbench now allows free-form placement and combination of elements
 - Elements can be added to the workbench by dragging from the library or clicking on them
+- Elements can be moved around freely on the workbench with proper dragging behavior
 - The application now handles cases where elements aren't found in the store by refetching them
 - The application works even when the backend is not available by using mock data
