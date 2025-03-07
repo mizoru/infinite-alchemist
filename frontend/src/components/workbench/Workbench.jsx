@@ -5,7 +5,7 @@ import Element from '../elements/Element';
 import useElementStore from '../../store/elementStore';
 import useSettingsStore from '../../store/settingsStore';
 
-const WorkbenchElement = ({ element, position, onDragEnd, onDrop, onDuplicate, onRemove }) => {
+const WorkbenchElement = ({ element, position, onDragEnd, onDrop, onDuplicate, onRemove, workbenchRef }) => {
   const ref = useRef(null);
   const [elementPosition, setElementPosition] = useState(position);
   
@@ -41,12 +41,29 @@ const WorkbenchElement = ({ element, position, onDragEnd, onDrop, onDuplicate, o
   const handleDragEnd = (event, info) => {
     console.log('Drag ended with info:', info);
     
+    // Make sure workbenchRef is defined and has a current value
+    if (!workbenchRef || !workbenchRef.current) {
+      console.error('workbenchRef is not defined or has no current value');
+      return;
+    }
+    
+    // Make sure the info object has a point property
+    if (!info || !info.point) {
+      console.error('Invalid drag info object:', info);
+      return;
+    }
+    
     // Use the point position directly instead of adding the offset
     // This prevents the "double movement" issue
     const newPosition = { 
       x: info.point.x - workbenchRef.current.getBoundingClientRect().left, 
       y: info.point.y - workbenchRef.current.getBoundingClientRect().top 
     };
+    
+    // Ensure the position is within the workbench bounds
+    const workbenchRect = workbenchRef.current.getBoundingClientRect();
+    newPosition.x = Math.max(0, Math.min(newPosition.x, workbenchRect.width));
+    newPosition.y = Math.max(0, Math.min(newPosition.y, workbenchRect.height));
     
     console.log('New position calculated:', newPosition);
     setElementPosition(newPosition);
@@ -377,6 +394,7 @@ const Workbench = ({ onDiscovery }) => {
             key={element.workbenchId}
             element={element}
             position={element.position}
+            workbenchRef={workbenchRef}
             onDragEnd={(id, newPosition) => updateElementPosition(id, newPosition)}
             onDrop={handleElementCombination}
             onDuplicate={duplicateElement}
