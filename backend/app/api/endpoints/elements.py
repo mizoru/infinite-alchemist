@@ -174,8 +174,7 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
         result_element = DBElement(
             name=llm_result["result"],
             emoji=llm_result["emoji"],
-            description="",
-            discovered_by=combination.player_name
+            description=""
         )
         db.add(result_element)
         db.commit()
@@ -240,13 +239,26 @@ def update_player_stats(db: Session, player_name: str, **kwargs):
     # Get or create player stats
     stats = db.query(PlayerStats).filter(PlayerStats.player_name == player_name).first()
     if not stats:
-        stats = PlayerStats(player_name=player_name)
+        # Initialize a new PlayerStats object with default values
+        stats = PlayerStats(
+            player_name=player_name,
+            elements_discovered=0,
+            elements_unlocked=0,
+            combinations_tried=0,
+            successful_combinations=0,
+            failed_combinations=0
+        )
         db.add(stats)
+        db.flush()  # Flush to get the ID without committing
     
     # Update stats
     for key, value in kwargs.items():
         if hasattr(stats, key):
-            setattr(stats, key, getattr(stats, key) + value)
+            current_value = getattr(stats, key)
+            if current_value is None:
+                setattr(stats, key, value)
+            else:
+                setattr(stats, key, current_value + value)
     
     db.commit()
 

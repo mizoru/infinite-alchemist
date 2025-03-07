@@ -113,7 +113,7 @@ def create_discovery(discovery: DiscoveryHistoryCreate, db: Session = Depends(ge
     
     # If this is the first discovery, update the element
     if is_first:
-        element.discovered_by = discovery.player_name
+        pass
         
     db.commit()
     db.refresh(db_discovery)
