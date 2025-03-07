@@ -53,8 +53,56 @@ const WorkbenchElement = ({ element, position, onDragEnd, onDrop, onDuplicate, o
       return;
     }
     
-    // Use the point position directly instead of adding the offset
-    // This prevents the "double movement" issue
+    // Check if the element was dropped on another element
+    // Get all elements on the workbench
+    const workbenchElements = document.querySelectorAll('.workbench-element');
+    let droppedOnElement = null;
+    
+    workbenchElements.forEach(el => {
+      // Skip the current element
+      if (!el.dataset || !el.dataset.workbenchId || el.dataset.workbenchId === element.workbenchId) {
+        return;
+      }
+      
+      // Check if the point is within this element's bounds
+      const rect = el.getBoundingClientRect();
+      if (
+        info.point.x >= rect.left &&
+        info.point.x <= rect.right &&
+        info.point.y >= rect.top &&
+        info.point.y <= rect.bottom
+      ) {
+        droppedOnElement = el.dataset.workbenchId;
+      }
+    });
+    
+    // If dropped on another element, trigger the combination
+    if (droppedOnElement) {
+      console.log('Dropped on element:', droppedOnElement);
+      // Find the target element in the workbench elements
+      const targetElement = document.querySelector(`[data-workbench-id="${droppedOnElement}"]`);
+      if (targetElement && targetElement.dataset && targetElement.dataset.elementId) {
+        // Create a mock item for the onDrop callback
+        const mockItem = {
+          id: element.id,
+          workbenchId: element.workbenchId,
+          isOnWorkbench: true
+        };
+        
+        // Get the target element data
+        const targetElementData = {
+          id: parseInt(targetElement.dataset.elementId),
+          workbenchId: droppedOnElement,
+          isOnWorkbench: true
+        };
+        
+        // Call the onDrop callback
+        onDrop(targetElementData, mockItem);
+        return;
+      }
+    }
+    
+    // If not dropped on another element, just update the position
     const newPosition = { 
       x: info.point.x - workbenchRef.current.getBoundingClientRect().left, 
       y: info.point.y - workbenchRef.current.getBoundingClientRect().top 
@@ -81,7 +129,9 @@ const WorkbenchElement = ({ element, position, onDragEnd, onDrop, onDuplicate, o
   return (
     <motion.div
       ref={ref}
-      className={`absolute cursor-move ${isOver ? 'ring-2 ring-green-500' : ''}`}
+      className={`absolute cursor-move workbench-element ${isOver ? 'ring-2 ring-green-500' : ''}`}
+      data-workbench-id={element.workbenchId}
+      data-element-id={element.id}
       style={{ 
         left: elementPosition.x, 
         top: elementPosition.y,
@@ -290,6 +340,20 @@ const Workbench = ({ onDiscovery }) => {
 
   // Handle element combination
   const handleElementCombination = async (targetElement, droppedElement) => {
+    console.log('Combining elements:', targetElement, 'and', droppedElement);
+    
+    // Make sure we have valid elements
+    if (!targetElement || !droppedElement) {
+      console.error('Invalid elements for combination');
+      return;
+    }
+    
+    // Make sure we have valid IDs
+    if (!targetElement.id || !droppedElement.id) {
+      console.error('Elements missing IDs for combination');
+      return;
+    }
+    
     // If the dropped element is from the workbench, remove it
     if (droppedElement.isOnWorkbench && droppedElement.workbenchId) {
       console.log('Removing dropped element from workbench:', droppedElement.workbenchId);
@@ -299,11 +363,11 @@ const Workbench = ({ onDiscovery }) => {
     }
     
     // Don't combine if it's the same element instance
-    if (targetElement.workbenchId === droppedElement.workbenchId) {
+    if (targetElement.workbenchId && droppedElement.workbenchId && 
+        targetElement.workbenchId === droppedElement.workbenchId) {
+      console.log('Cannot combine an element with itself');
       return;
     }
-    
-    console.log('Combining elements:', targetElement, 'and', droppedElement);
     
     setIsLoading(true);
     try {
@@ -312,10 +376,26 @@ const Workbench = ({ onDiscovery }) => {
       
       console.log('Combination result:', result);
       
+      // Get the position for the result
+      // If targetElement has a position, use it
+      // Otherwise, use a default position in the center of the workbench
+      let resultPosition = { x: 0, y: 0 };
+      
+      if (targetElement.position) {
+        resultPosition = targetElement.position;
+      } else if (workbenchRef.current) {
+        // If no position is available, place it in the center of the workbench
+        const rect = workbenchRef.current.getBoundingClientRect();
+        resultPosition = {
+          x: rect.width / 2 - 50,  // Adjust for element width
+          y: rect.height / 2 - 50  // Adjust for element height
+        };
+      }
+      
       // Show the result
       setCombinationResult({
         ...result,
-        position: targetElement.position // Show result at the target element's position
+        position: resultPosition
       });
       
       // Set loading to false after getting the result
@@ -340,7 +420,7 @@ const Workbench = ({ onDiscovery }) => {
             { 
               ...result.result, 
               workbenchId: `${result.result.id}-${Date.now()}`,
-              position: targetElement.position 
+              position: resultPosition 
             }
           ]);
         }
@@ -404,7 +484,7 @@ const Workbench = ({ onDiscovery }) => {
 
       {/* Combination result animation */}
       <AnimatePresence>
-        {combinationResult && (
+        {combinationResult && combinationResult.position && (
           <motion.div
             className="absolute z-10"
             style={{ 
