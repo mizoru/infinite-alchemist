@@ -301,6 +301,9 @@ const Workbench = ({ onDiscovery }) => {
         position: targetElement.position // Show result at the target element's position
       });
       
+      // Set loading to false after getting the result
+      setIsLoading(false);
+      
       // Remove the target element
       setElementsOnWorkbench(prev => 
         prev.filter(el => el.workbenchId !== targetElement.workbenchId)

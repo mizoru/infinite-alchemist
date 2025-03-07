@@ -25,7 +25,7 @@ def get_elements(skip: int = 0, limit: int = 100, db: Session = Depends(get_db))
             "name": element.name,
             "emoji": element.emoji,
             "description": element.description,
-            "is_basic": element.is_basic,
+            "is_basic": bool(element.is_basic),
             "created_at": element.created_at,
             "discovered_by": None  # Set discovered_by to None for now
         }
@@ -62,7 +62,7 @@ def get_player_elements(player_name: str, skip: int = 0, limit: int = 100, db: S
             "name": element.name,
             "emoji": element.emoji,
             "description": element.description,
-            "is_basic": element.is_basic,
+            "is_basic": bool(element.is_basic),
             "created_at": element.created_at,
             "discovered_by": None  # Set discovered_by to None for now
         }
@@ -85,7 +85,7 @@ def get_element(element_id: int, db: Session = Depends(get_db)):
         "name": element.name,
         "emoji": element.emoji,
         "description": element.description,
-        "is_basic": element.is_basic,
+        "is_basic": bool(element.is_basic),
         "created_at": element.created_at,
         "discovered_by": None  # Set discovered_by to None for now
     }
@@ -153,7 +153,7 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
                 "name": result_element.name,
                 "emoji": result_element.emoji,
                 "description": "",
-                "is_basic": result_element.is_basic,
+                "is_basic": bool(result_element.is_basic),
                 "created_at": result_element.created_at,
                 "discovered_by": None  # Set discovered_by to None for now
             },
@@ -221,7 +221,7 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
             "name": result_element.name,
             "emoji": result_element.emoji,
             "description": "",
-            "is_basic": result_element.is_basic,
+            "is_basic": bool(result_element.is_basic),
             "created_at": result_element.created_at,
             "discovered_by": None  # Set discovered_by to None for now
         },

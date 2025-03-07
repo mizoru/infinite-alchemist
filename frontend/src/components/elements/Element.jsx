@@ -43,7 +43,7 @@ const Element = ({ element, onClick, onDuplicate, size = 'medium', className = '
 
   // Element type classes
   const getTypeClasses = () => {
-    if (element.is_basic) {
+    if (element.is_basic === true || element.is_basic === 1) {
       return 'border-blue-500/30 bg-blue-500/10';
     }
     if (element.is_new_discovery) {
@@ -114,7 +114,7 @@ const Element = ({ element, onClick, onDuplicate, size = 'medium', className = '
         )}
       </div>
       <span className="element-name font-medium">{element.name}</span>
-      {element.is_basic && (
+      {(element.is_basic === true || element.is_basic === 1) && (
         <span className="ml-2 text-xs bg-blue-500/30 text-blue-200 px-1 rounded">Basic</span>
       )}
       {element.is_new_discovery && (
