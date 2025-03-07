@@ -179,6 +179,7 @@ const Library = () => {
                   <Element 
                     element={element} 
                     onClick={handleElementClick}
+                    isOnWorkbench={false}
                   />
                 </motion.div>
               ))}

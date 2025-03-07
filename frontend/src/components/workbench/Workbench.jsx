@@ -5,7 +5,7 @@ import Element from '../elements/Element';
 import useElementStore from '../../store/elementStore';
 import useSettingsStore from '../../store/settingsStore';
 
-const WorkbenchElement = ({ element, position, onDragEnd, onDrop }) => {
+const WorkbenchElement = ({ element, position, onDragEnd, onDrop, onDuplicate, onRemove }) => {
   const ref = useRef(null);
   const [elementPosition, setElementPosition] = useState(position);
   
@@ -39,9 +39,26 @@ const WorkbenchElement = ({ element, position, onDragEnd, onDrop }) => {
   
   // Handle drag end
   const handleDragEnd = (event, info) => {
-    const newPosition = { x: elementPosition.x + info.offset.x, y: elementPosition.y + info.offset.y };
+    console.log('Drag ended with info:', info);
+    
+    // Use the point position directly instead of adding the offset
+    // This prevents the "double movement" issue
+    const newPosition = { 
+      x: info.point.x - workbenchRef.current.getBoundingClientRect().left, 
+      y: info.point.y - workbenchRef.current.getBoundingClientRect().top 
+    };
+    
+    console.log('New position calculated:', newPosition);
     setElementPosition(newPosition);
     onDragEnd(element.workbenchId, newPosition);
+  };
+  
+  // Handle element duplication
+  const handleDuplicate = () => {
+    console.log('Duplicating element:', element);
+    if (onDuplicate) {
+      onDuplicate(element, elementPosition);
+    }
   };
   
   return (
@@ -56,14 +73,17 @@ const WorkbenchElement = ({ element, position, onDragEnd, onDrop }) => {
       initial={{ scale: 0 }}
       animate={{ scale: 1 }}
       exit={{ scale: 0 }}
-      drag
-      dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-      dragElastic={0.1}
+      drag={true}
       dragMomentum={false}
       onDragEnd={handleDragEnd}
       whileDrag={{ zIndex: 1000, scale: 1.05 }}
     >
-      <Element element={element} size="large" />
+      <Element 
+        element={element} 
+        size="large" 
+        isOnWorkbench={true}
+        onDuplicate={handleDuplicate}
+      />
     </motion.div>
   );
 };
@@ -80,6 +100,12 @@ const Workbench = ({ onDiscovery }) => {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'element',
     drop: (item, monitor) => {
+      // If the element is already on the workbench, don't add it again
+      if (item.isOnWorkbench) {
+        console.log('Element is already on workbench, not adding a copy');
+        return { dropped: true };
+      }
+      
       // Get drop position relative to the workbench
       const workbenchRect = workbenchRef.current.getBoundingClientRect();
       const dropPosition = monitor.getClientOffset();
@@ -209,8 +235,11 @@ const Workbench = ({ onDiscovery }) => {
         y: Math.max(0, Math.min(newPosition.y, rect.height - 100))
       };
       
-      setElementsOnWorkbench(
-        elementsOnWorkbench.map(el => 
+      console.log('Adjusted position:', adjustedPosition);
+      
+      // Update the element's position in the state
+      setElementsOnWorkbench(prev => 
+        prev.map(el => 
           el.workbenchId === workbenchId 
             ? { ...el, position: adjustedPosition } 
             : el
@@ -218,8 +247,8 @@ const Workbench = ({ onDiscovery }) => {
       );
     } else {
       // If workbenchRef is not available, just update the position
-      setElementsOnWorkbench(
-        elementsOnWorkbench.map(el => 
+      setElementsOnWorkbench(prev => 
+        prev.map(el => 
           el.workbenchId === workbenchId 
             ? { ...el, position: newPosition } 
             : el
@@ -227,9 +256,31 @@ const Workbench = ({ onDiscovery }) => {
       );
     }
   };
+  
+  // Duplicate an element on the workbench
+  const duplicateElement = (element, position) => {
+    console.log('Duplicating element:', element);
+    
+    // Create a slightly offset position for the duplicate
+    const offsetPosition = {
+      x: position.x + 20,
+      y: position.y + 20
+    };
+    
+    // Add a duplicate of the element to the workbench
+    addElementToWorkbenchInternal(element, offsetPosition);
+  };
 
   // Handle element combination
   const handleElementCombination = async (targetElement, droppedElement) => {
+    // If the dropped element is from the workbench, remove it
+    if (droppedElement.isOnWorkbench && droppedElement.workbenchId) {
+      console.log('Removing dropped element from workbench:', droppedElement.workbenchId);
+      setElementsOnWorkbench(prev => 
+        prev.filter(el => el.workbenchId !== droppedElement.workbenchId)
+      );
+    }
+    
     // Don't combine if it's the same element instance
     if (targetElement.workbenchId === droppedElement.workbenchId) {
       return;
@@ -250,28 +301,22 @@ const Workbench = ({ onDiscovery }) => {
         position: targetElement.position // Show result at the target element's position
       });
       
-      // Remove the combined elements
-      setElementsOnWorkbench(
-        elementsOnWorkbench.filter(el => 
-          el.workbenchId !== targetElement.workbenchId && 
-          el.workbenchId !== droppedElement.workbenchId
-        )
+      // Remove the target element
+      setElementsOnWorkbench(prev => 
+        prev.filter(el => el.workbenchId !== targetElement.workbenchId)
       );
       
-      // Notify parent component about the discovery
-      if (onDiscovery && typeof onDiscovery === 'function') {
+      // Notify parent component of discovery
+      if (onDiscovery && result.is_new_discovery) {
         onDiscovery(result);
       }
       
-      // Clear the result after a delay
+      // Clear the result after a delay and add the new element
       setTimeout(() => {
         // Add the result to the workbench
         if (result.result) {
           setElementsOnWorkbench(prev => [
-            ...prev.filter(el => 
-              el.workbenchId !== targetElement.workbenchId && 
-              el.workbenchId !== droppedElement.workbenchId
-            ),
+            ...prev,
             { 
               ...result.result, 
               workbenchId: `${result.result.id}-${Date.now()}`,
@@ -282,58 +327,13 @@ const Workbench = ({ onDiscovery }) => {
         
         setCombinationResult(null);
       }, 2000);
+      
     } catch (error) {
       console.error('Error combining elements:', error);
-      
-      // Create a mock result if there's an error
-      const mockResult = {
-        element1_id: targetElement.id,
-        element2_id: droppedElement.id,
-        result_id: 999,
-        result: {
-          id: 999,
-          name: "Mock Result",
-          emoji: "✨",
-          description: "This is a mock result because the backend is not available.",
-          is_basic: false,
-          created_at: new Date().toISOString(),
-          discovered_by: null
-        },
-        is_new_discovery: true,
-        is_first_discovery: true,
-        position: targetElement.position
-      };
-      
-      // Show the mock result
-      setCombinationResult(mockResult);
-      
-      // Remove the combined elements
-      setElementsOnWorkbench(
-        elementsOnWorkbench.filter(el => 
-          el.workbenchId !== targetElement.workbenchId && 
-          el.workbenchId !== droppedElement.workbenchId
-        )
-      );
-      
-      // Clear the result after a delay
-      setTimeout(() => {
-        // Add the mock result to the workbench
-        setElementsOnWorkbench(prev => [
-          ...prev.filter(el => 
-            el.workbenchId !== targetElement.workbenchId && 
-            el.workbenchId !== droppedElement.workbenchId
-          ),
-          { 
-            ...mockResult.result, 
-            workbenchId: `${mockResult.result.id}-${Date.now()}`,
-            position: targetElement.position 
-          }
-        ]);
-        
-        setCombinationResult(null);
-      }, 2000);
-    } finally {
       setIsLoading(false);
+      
+      // Show error message
+      // TODO: Implement error toast or notification
     }
   };
 
@@ -352,118 +352,147 @@ const Workbench = ({ onDiscovery }) => {
   };
 
   return (
-    <div className="mb-8">
-      <motion.h2 
-        className="text-xl font-bold mb-4"
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        Workbench
-      </motion.h2>
-      
-      <motion.div 
-        ref={(node) => {
-          drop(node);
-          workbenchRef.current = node;
-        }}
-        className={`
-          workbench border-2 rounded-xl p-6 min-h-[400px] relative
-          transition-colors duration-300 ease-in-out
-          ${getWorkbenchStateClasses()}
-        `}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        {isLoading ? (
-          <motion.div 
-            className="absolute inset-0 flex items-center justify-center backdrop-blur-sm z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div 
-              className="w-16 h-16 border-4 border-accent rounded-full border-t-transparent"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            />
-          </motion.div>
-        ) : null}
-        
-        {/* Elements on workbench */}
-        <AnimatePresence>
-          {elementsOnWorkbench.map((element) => (
-            <WorkbenchElement
-              key={element.workbenchId}
-              element={element}
-              position={element.position}
-              onDragEnd={(id, newPosition) => updateElementPosition(id, newPosition)}
-              onDrop={handleElementCombination}
-            />
-          ))}
-        </AnimatePresence>
-        
-        {/* Combination result animation */}
+    <div 
+      ref={(node) => {
+        workbenchRef.current = node;
+        drop(node);
+      }}
+      className={`
+        workbench relative rounded-xl overflow-hidden
+        ${getWorkbenchStateClasses()}
+        transition-colors duration-200
+      `}
+      style={{ 
+        minHeight: '400px',
+        height: '60vh'
+      }}
+    >
+      {/* Elements on workbench */}
+      <AnimatePresence>
+        {elementsOnWorkbench.map((element) => (
+          <WorkbenchElement
+            key={element.workbenchId}
+            element={element}
+            position={element.position}
+            onDragEnd={(id, newPosition) => updateElementPosition(id, newPosition)}
+            onDrop={handleElementCombination}
+            onDuplicate={duplicateElement}
+          />
+        ))}
+      </AnimatePresence>
+
+      {/* Combination result animation */}
+      <AnimatePresence>
         {combinationResult && (
-          <motion.div 
-            className="absolute z-50"
+          <motion.div
+            className="absolute z-10"
             style={{ 
               left: combinationResult.position.x, 
               top: combinationResult.position.y 
             }}
             initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1.2, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            transition={{ 
-              type: "spring",
-              stiffness: 500,
-              damping: 30
+            animate={{ 
+              scale: [0, 1.2, 1], 
+              opacity: 1 
             }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ duration: 0.5 }}
           >
-            <Element 
-              element={combinationResult.result} 
-              size="large"
-              className={combinationResult.is_new_discovery ? 'ring-4 ring-green-500/30' : ''}
-            />
+            <div className="relative">
+              <Element 
+                element={combinationResult.result} 
+                size="large"
+                className={`
+                  ${combinationResult.is_new_discovery ? 'ring-2 ring-green-500' : ''}
+                  ${combinationResult.is_first_discovery ? 'ring-2 ring-purple-500' : ''}
+                `}
+              />
+              
+              {combinationResult.is_new_discovery && (
+                <motion.div
+                  className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  New!
+                </motion.div>
+              )}
+              
+              {combinationResult.is_first_discovery && (
+                <motion.div
+                  className="absolute -top-2 -left-2 bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded-full"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  First!
+                </motion.div>
+              )}
+            </div>
           </motion.div>
         )}
-        
-        {/* Empty state */}
-        {elementsOnWorkbench.length === 0 && !combinationResult && (
-          <motion.div 
-            className="text-center text-textSecondary p-8"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            <p className="text-lg mb-2">Drag elements here to combine them</p>
-            <p className="text-sm opacity-75">
-              Drop elements anywhere on the workbench and drag them around
-            </p>
-          </motion.div>
-        )}
-        
-        {/* Clear button */}
-        {elementsOnWorkbench.length > 0 && (
+      </AnimatePresence>
+
+      {/* Loading indicator */}
+      <AnimatePresence>
+        {isLoading && (
           <motion.div
-            className="absolute bottom-4 right-4"
+            className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-20"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="text-center">
+              <motion.div
+                className="inline-block w-12 h-12 border-4 border-accent border-t-transparent rounded-full"
+                animate={{ rotate: 360 }}
+                transition={{ 
+                  duration: 1,
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+              />
+              <p className="mt-4 text-white font-medium">Combining elements...</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Empty state */}
+      {elementsOnWorkbench.length === 0 && !isLoading && !combinationResult && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <button 
-              className={`
-                btn px-6 py-2
-                ${darkMode ? 'bg-red-500/20 hover:bg-red-500/30' : 'bg-red-500 hover:bg-red-600'}
-              `}
-              onClick={clearWorkbench}
-            >
-              Clear Workbench
-            </button>
+            <p className="text-textSecondary mb-2">Drag elements here to combine them</p>
+            <p className="text-xs text-textSecondary opacity-70">
+              Drag elements from the library or click on them to add to the workbench.
+              <br />
+              Right-click elements on the workbench to duplicate them.
+              <br />
+              Drag one element onto another to combine them.
+            </p>
           </motion.div>
-        )}
-      </motion.div>
+        </div>
+      )}
+
+      {/* Clear button */}
+      {elementsOnWorkbench.length > 0 && (
+        <motion.button
+          className="absolute bottom-4 right-4 bg-red-500/80 hover:bg-red-500 text-white px-3 py-1 rounded-lg text-sm"
+          onClick={clearWorkbench}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          Clear
+        </motion.button>
+      )}
     </div>
   );
 };

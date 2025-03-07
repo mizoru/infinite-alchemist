@@ -1,15 +1,25 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useDrag } from 'react-dnd';
 import { motion } from 'framer-motion';
 
-const Element = ({ element, onClick, size = 'medium', className = '' }) => {
-  // Set up drag functionality
+const Element = ({ element, onClick, onDuplicate, size = 'medium', className = '', isOnWorkbench = false }) => {
+  const elementRef = useRef(null);
+  
+  // Set up drag functionality with React DnD
+  // Only enable React DnD dragging when not on the workbench
+  // When on the workbench, we use Framer Motion's drag instead
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'element',
     item: () => {
       console.log('Starting drag for element:', element);
-      return { id: element.id, name: element.name };
+      return { 
+        id: element.id, 
+        name: element.name, 
+        workbenchId: element.workbenchId,
+        isOnWorkbench: isOnWorkbench
+      };
     },
+    canDrag: !isOnWorkbench, // Disable React DnD dragging when on workbench
     end: (item, monitor) => {
       const dropResult = monitor.getDropResult();
       if (item && dropResult) {
@@ -19,7 +29,7 @@ const Element = ({ element, onClick, size = 'medium', className = '' }) => {
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
-  }));
+  }), [isOnWorkbench, element.id, element.workbenchId]);
 
   // Size classes
   const sizeClasses = {
@@ -47,13 +57,26 @@ const Element = ({ element, onClick, size = 'medium', className = '' }) => {
     console.log('Element clicked:', element);
     if (onClick) onClick(element);
   };
+  
+  // Handle right click (context menu)
+  const handleContextMenu = (e) => {
+    e.preventDefault(); // Prevent default context menu
+    console.log('Element right-clicked:', element);
+    if (onDuplicate) onDuplicate(element);
+  };
+
+  // Connect the drag ref to the element ref
+  // Only apply the drag ref if not on workbench
+  if (!isOnWorkbench) {
+    drag(elementRef);
+  }
 
   return (
     <motion.div
-      ref={drag}
+      ref={elementRef}
       className={`
         element-card backdrop-blur-sm rounded-lg border 
-        flex items-center cursor-grab select-none 
+        flex items-center ${isOnWorkbench ? 'cursor-move' : 'cursor-grab'} select-none 
         shadow-md hover:shadow-lg
         ${sizeClasses[size]}
         ${getTypeClasses()}
@@ -61,6 +84,7 @@ const Element = ({ element, onClick, size = 'medium', className = '' }) => {
         ${isDragging ? 'ring-2 ring-accent ring-opacity-50' : ''}
       `}
       onClick={handleClick}
+      onContextMenu={handleContextMenu}
       whileHover={{ 
         scale: 1.05, 
         boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
