@@ -193,9 +193,10 @@
 
 ### Internationalization Improvements
 - [x] Refactor the internationalization architecture:
-  - [x] Create a proper mapping between element IDs across languages
-  - [x] Implement a more robust translation system for element names
-  - [x] Implement proper handling of language-specific elements in the database
+  - [ ] Simplify the database model by removing universal elements and IDs
+  - [ ] Update the database initialization to create basic elements for each language separately
+  - [ ] Ensure API endpoints properly handle language-specific elements
+  - [ ] Update the frontend to work with the simplified internationalization model
   - [ ] Add language detection system based on browser settings
   - [ ] Create a language context provider to avoid prop drilling
   - [ ] Add language switching without losing workbench state

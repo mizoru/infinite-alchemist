@@ -28,6 +28,63 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
+5. Initialize the database:
+```bash
+python -m app.db.init_db
+```
+
+## Internationalization Architecture
+
+Infinite Alchemist supports multiple languages with completely separate element trees for each language:
+
+### Key Features
+
+- **Language-Specific Elements**: Each language has its own set of elements with unique IDs.
+- **Independent Crafting Trees**: Element combinations are language-specific, allowing for culturally relevant combinations.
+- **Basic Elements**: Each language starts with the same four basic elements (Water, Fire, Earth, Air) but with localized names.
+- **LLM Integration**: The LLM generates language-specific combinations based on the selected language.
+
+### Database Structure
+
+The database is designed to support language-specific elements:
+
+```
+elements
+├── id (PK)
+├── name (String)
+├── emoji (String)
+├── is_basic (Boolean)
+├── language (String) - "en", "ru", etc.
+├── created_at (DateTime)
+└── created_by (String, nullable)
+```
+
+Element combinations are also language-specific:
+
+```
+element_combinations
+├── element1_id (PK, FK -> elements.id)
+├── element2_id (PK, FK -> elements.id)
+├── result_id (FK -> elements.id)
+├── language (PK, String) - "en", "ru", etc.
+├── created_at (DateTime)
+└── discovered_by (String, nullable)
+```
+
+### API Usage
+
+When using the API, always specify the language parameter:
+
+```
+POST /api/elements/combine
+{
+    "element1_id": 1,
+    "element2_id": 2,
+    "player_name": "player123",
+    "lang": "en"  // or "ru" for Russian
+}
+```
+
 ## LLM Service
 
 The LLM service is responsible for handling element combinations using a language model. It supports both OpenAI and Hugging Face models, with Hugging Face being the default.

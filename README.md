@@ -162,13 +162,13 @@ The Library displays all discovered elements and allows users to:
 
 ## Internationalization Architecture
 
-Infinite Alchemist supports multiple languages with language-specific crafting trees, allowing for culturally diverse element combinations.
+Infinite Alchemist supports multiple languages with completely separate element trees for each language:
 
 ### Key Features
 
-- **Universal Basic Elements**: The four basic elements (Water, Fire, Earth, Air) are universal across all languages but have language-specific names.
-- **Language-Specific Crafting Trees**: Each language has its own crafting tree, allowing for culturally relevant combinations.
-- **Shared Element IDs**: Elements have a universal ID that maps to language-specific variants.
+- **Language-Specific Elements**: Each language has its own set of elements with unique IDs.
+- **Independent Crafting Trees**: Element combinations are language-specific, allowing for culturally relevant combinations.
+- **Basic Elements**: Each language starts with the same four basic elements (Water, Fire, Earth, Air) but with localized names.
 - **LLM Integration**: The LLM generates language-specific combinations based on the selected language.
 
 ### Database Structure
@@ -181,8 +181,7 @@ elements
 ├── name (String)
 ├── emoji (String)
 ├── is_basic (Boolean)
-├── language (String) - "en", "ru", or "universal"
-├── universal_id (Integer, nullable) - Reference to the universal element
+├── language (String) - "en", "ru", etc.
 ├── created_at (DateTime)
 └── created_by (String, nullable)
 ```
@@ -193,7 +192,7 @@ Element combinations are also language-specific:
 element_combinations
 ├── element1_id (PK, FK -> elements.id)
 ├── element2_id (PK, FK -> elements.id)
-├── result_id (PK, FK -> elements.id)
+├── result_id (FK -> elements.id)
 ├── language (PK, String) - "en", "ru", etc.
 ├── created_at (DateTime)
 └── discovered_by (String, nullable)
@@ -202,15 +201,6 @@ element_combinations
 ### Frontend Implementation
 
 The frontend stores elements separately for each language and sends the current language to the backend when combining elements. The UI is fully translated using i18next.
-
-### Migration
-
-If you're upgrading from a previous version, run the migration script to update your database:
-
-```
-cd backend
-python migrate.py
-```
 
 ## Acknowledgments
 

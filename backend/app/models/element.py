@@ -34,14 +34,12 @@ class DBElement(Base):
     name = Column(String, index=True)
     emoji = Column(String, default="✨")
     is_basic = Column(Boolean, default=False)
-    language = Column(String, default="universal", index=True)  # "en", "ru", or "universal"
-    universal_id = Column(Integer, ForeignKey("elements.id"), nullable=True)  # Reference to universal element
+    language = Column(String, default="en", index=True)  # "en", "ru", etc.
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     created_by = Column(String, nullable=True)
     
     # Relationships
     discovered_by = relationship("DiscoveryHistory", back_populates="element")
-    universal_element = relationship("DBElement", remote_side=[id], backref="language_variants")
     
     def __repr__(self):
         return f"<Element(id={self.id}, name='{self.name}', language='{self.language}')>"
@@ -54,7 +52,6 @@ class DBElement(Base):
             "emoji": self.emoji,
             "is_basic": self.is_basic,
             "language": self.language,
-            "universal_id": self.universal_id,
             "created_by": self.created_by,
             "created_at": self.created_at,
         }

@@ -6,8 +6,7 @@ class ElementBase(BaseModel):
     name: str
     emoji: Optional[str] = None
     is_basic: Union[int, bool] = False
-    language: str = "universal"  # "en", "ru", or "universal"
-    universal_id: Optional[int] = None  # Reference to universal element
+    language: str = "en"  # "en", "ru", etc.
 
 class ElementCreate(ElementBase):
     pass
@@ -43,8 +42,7 @@ class Element(ElementBase):
     id: int
     created_at: datetime
     discovered_by: Optional[Any] = None  # Can be string, list, or None
-    language: str = "universal"  # Add this line if not already present
-    universal_id: Optional[int] = None  # Add this line if not already present
+    language: str = "en"  # "en", "ru", etc.
 
     class Config:
         from_attributes = True

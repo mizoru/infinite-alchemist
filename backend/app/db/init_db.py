@@ -5,27 +5,19 @@ from app.models.element import DBElement, PlayerStats, player_elements
 # Create tables
 Base.metadata.create_all(bind=engine)
 
-# Universal basic elements
-UNIVERSAL_BASIC_ELEMENTS = [
-    {"name": "Water", "emoji": "💧", "is_basic": True, "language": "universal"},
-    {"name": "Fire", "emoji": "🔥", "is_basic": True, "language": "universal"},
-    {"name": "Earth", "emoji": "🌍", "is_basic": True, "language": "universal"},
-    {"name": "Air", "emoji": "💨", "is_basic": True, "language": "universal"},
-]
-
-# Language-specific names for basic elements
+# Language-specific basic elements
 LANGUAGE_BASIC_ELEMENTS = {
     "en": [
-        {"name": "Water", "emoji": "💧"},
-        {"name": "Fire", "emoji": "🔥"},
-        {"name": "Earth", "emoji": "🌍"},
-        {"name": "Air", "emoji": "💨"},
+        {"name": "Water", "emoji": "💧", "is_basic": True, "language": "en"},
+        {"name": "Fire", "emoji": "🔥", "is_basic": True, "language": "en"},
+        {"name": "Earth", "emoji": "🌍", "is_basic": True, "language": "en"},
+        {"name": "Air", "emoji": "💨", "is_basic": True, "language": "en"},
     ],
     "ru": [
-        {"name": "Вода", "emoji": "💧"},
-        {"name": "Огонь", "emoji": "🔥"},
-        {"name": "Земля", "emoji": "🌍"},
-        {"name": "Воздух", "emoji": "💨"},
+        {"name": "Вода", "emoji": "💧", "is_basic": True, "language": "ru"},
+        {"name": "Огонь", "emoji": "🔥", "is_basic": True, "language": "ru"},
+        {"name": "Земля", "emoji": "🌍", "is_basic": True, "language": "ru"},
+        {"name": "Воздух", "emoji": "💨", "is_basic": True, "language": "ru"},
     ]
 }
 
@@ -38,38 +30,21 @@ def init_db():
             print(f"Database already contains {existing_count} elements. Skipping initialization.")
             return
         
-        # Add universal basic elements first
-        universal_elements = {}
-        for element_data in UNIVERSAL_BASIC_ELEMENTS:
-            element = DBElement(**element_data)
-            db.add(element)
-            db.flush()  # Flush to get the ID
-            universal_elements[element.name] = element.id
-        
-        # Add language-specific variants of basic elements
+        # Add language-specific basic elements
+        elements_added = 0
         for lang, elements in LANGUAGE_BASIC_ELEMENTS.items():
-            for i, element_data in enumerate(elements):
-                # Get the corresponding universal element
-                universal_name = UNIVERSAL_BASIC_ELEMENTS[i]["name"]
-                universal_id = universal_elements[universal_name]
-                
-                # Create language-specific element
-                element = DBElement(
-                    name=element_data["name"],
-                    emoji=element_data["emoji"],
-                    is_basic=True,
-                    language=lang,
-                    universal_id=universal_id
-                )
+            for element_data in elements:
+                element = DBElement(**element_data)
                 db.add(element)
+                elements_added += 1
         
         db.commit()
-        print(f"Added {len(universal_elements)} universal basic elements and their language variants to the database.")
+        print(f"Added {elements_added} basic elements across all languages to the database.")
         
         # Make basic elements available to all existing players
         players = db.query(PlayerStats).all()
         for player in players:
-            # Get all basic elements (both universal and language-specific)
+            # Get all basic elements
             basic_elements = db.query(DBElement).filter(DBElement.is_basic == True).all()
             
             for element in basic_elements:
@@ -89,14 +64,17 @@ def init_db():
     finally:
         db.close()
 
-def add_basic_elements_to_player(player_name: str):
+def add_basic_elements_to_player(player_name: str, language: str = "en"):
     """
-    Add basic elements to a new player.
+    Add basic elements to a new player for the specified language.
     """
     db = SessionLocal()
     try:
-        # Get basic elements
-        basic_elements = db.query(DBElement).filter(DBElement.is_basic == True).all()
+        # Get basic elements for the specified language
+        basic_elements = db.query(DBElement).filter(
+            (DBElement.is_basic == True) & 
+            (DBElement.language == language)
+        ).all()
         
         # Get or create player
         player = db.query(PlayerStats).filter(PlayerStats.player_name == player_name).first()

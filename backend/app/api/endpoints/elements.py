@@ -22,11 +22,11 @@ def get_elements(
     
     - **skip**: Number of elements to skip
     - **limit**: Maximum number of elements to return
-    - **language**: Language code ("en", "ru", or "universal")
+    - **language**: Language code ("en", "ru", etc.)
     """
-    # Get elements for the specified language and universal elements
+    # Get elements for the specified language
     elements = db.query(DBElement).filter(
-        (DBElement.language == language) | (DBElement.language == "universal")
+        DBElement.language == language
     ).offset(skip).limit(limit).all()
     
     # Convert elements to dictionaries to avoid serialization issues with relationships
@@ -38,7 +38,6 @@ def get_elements(
             "emoji": element.emoji,
             "is_basic": element.is_basic,
             "language": element.language,
-            "universal_id": element.universal_id,
             "created_at": element.created_at,
             "created_by": element.created_by,
             "discovered_by": None  # Set discovered_by to None to avoid serialization issues
@@ -100,7 +99,6 @@ def get_element(element_id: int, db: Session = Depends(get_db)):
         "emoji": element.emoji,
         "is_basic": bool(element.is_basic),
         "language": element.language,
-        "universal_id": element.universal_id,
         "created_at": element.created_at,
         "created_by": element.created_by,
         "discovered_by": None  # Set discovered_by to None to avoid serialization issues
@@ -144,29 +142,16 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
     # Get the language from the request
     lang = combination.lang if hasattr(combination, 'lang') else "en"
     
-    # Get the element names in the correct language
+    # Ensure elements are in the correct language
+    if element1.language != lang or element2.language != lang:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Elements must be in the same language as the request ({lang})"
+        )
+    
+    # Get the element names
     element1_name = element1.name
     element2_name = element2.name
-    
-    # If the elements have universal IDs and the language is not the same as the element's language,
-    # try to find the language-specific variants
-    if element1.language != lang and element1.universal_id is not None:
-        # Try to find the language-specific variant
-        lang_variant = db.query(DBElement).filter(
-            (DBElement.universal_id == element1.universal_id) & 
-            (DBElement.language == lang)
-        ).first()
-        if lang_variant:
-            element1_name = lang_variant.name
-    
-    if element2.language != lang and element2.universal_id is not None:
-        # Try to find the language-specific variant
-        lang_variant = db.query(DBElement).filter(
-            (DBElement.universal_id == element2.universal_id) & 
-            (DBElement.language == lang)
-        ).first()
-        if lang_variant:
-            element2_name = lang_variant.name
     
     # Check if the combination already exists for this language
     # Sort element IDs to ensure consistent keys
