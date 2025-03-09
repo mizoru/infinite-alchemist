@@ -289,12 +289,18 @@ const useElementStore = create(
         if (!element) {
           console.warn(`Element with ID ${id} not found in the store for language ${lang}`);
           
-          // Try to fetch the element from the API
-          get().fetchElementById(id);
+          // Check if we have elements loaded at all
+          if (elements.length === 0) {
+            console.log(`No elements loaded for language ${lang}, fetching elements...`);
+            // Trigger fetch but don't wait for it
+            get().fetchElements();
+          } else {
+            // Try to fetch the specific element
+            get().fetchElementById(id);
+          }
           
-          // Return mock element if not found
-          const mockElements = MOCK_ELEMENTS[lang] || MOCK_ELEMENTS.en;
-          return mockElements.find(el => el.id === id) || mockElements[0];
+          // Return null if element not found
+          return null;
         }
         return element;
       },

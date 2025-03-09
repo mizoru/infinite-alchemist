@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Element from '../elements/Element';
 import useElementStore from '../../store/elementStore';
 import useSettingsStore from '../../store/settingsStore';
+import { useTranslation } from 'react-i18next';
 
 const WorkbenchElement = ({ element, position, onDragEnd, onDrop, onDuplicate, onRemove, workbenchRef }) => {
   const ref = useRef(null);
@@ -162,8 +163,19 @@ const Workbench = ({ onDiscovery }) => {
   const [combinationResult, setCombinationResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const { combineElements } = useElementStore();
-  const { playerName, darkMode } = useSettingsStore();
+  const { playerName, darkMode, language } = useSettingsStore();
   const workbenchRef = useRef(null);
+  const { t } = useTranslation();
+
+  // Clear workbench when language changes
+  useEffect(() => {
+    console.log('Language changed to:', language);
+    if (elementsOnWorkbench.length > 0) {
+      console.log('Clearing workbench due to language change');
+      setElementsOnWorkbench([]);
+      setCombinationResult(null);
+    }
+  }, [language]);
 
   // Set up drop functionality for the workbench
   const [{ isOver }, drop] = useDrop(() => ({
@@ -213,6 +225,11 @@ const Workbench = ({ onDiscovery }) => {
       const { element } = event.detail;
       console.log('Custom event received:', element);
       
+      if (!element || !element.id) {
+        console.error('Invalid element received in custom event:', element);
+        return;
+      }
+      
       // Calculate center position of workbench
       if (workbenchRef.current) {
         const rect = workbenchRef.current.getBoundingClientRect();
@@ -220,11 +237,7 @@ const Workbench = ({ onDiscovery }) => {
         const centerY = rect.height / 2;
         
         // Add element to center of workbench
-        addElementToWorkbench({ 
-          id: element.id, 
-          name: element.name,
-          displayName: element.displayName || element.name // Pass displayName if available
-        }, { 
+        addElementToWorkbench(element, { 
           x: centerX - 50, // Offset by half element width
           y: centerY - 30  // Offset by half element height
         });
@@ -242,61 +255,81 @@ const Workbench = ({ onDiscovery }) => {
 
   // Add element to workbench at a specific position
   const addElementToWorkbench = (item, position) => {
-    // Find the element in the store
-    const element = useElementStore.getState().getElementById(item.id);
+    console.log('Adding element to workbench, item:', item, 'position:', position);
     
-    if (!element) {
-      console.error('Element not found:', item);
-      // Try to fetch elements if they're not loaded yet
-      useElementStore.getState().fetchElements().then(() => {
-        // Try again after fetching
-        const refetchedElement = useElementStore.getState().getElementById(item.id);
-        if (refetchedElement) {
-          console.log('Element found after fetching:', refetchedElement);
-          addElementToWorkbenchInternal(refetchedElement, position);
-        } else {
-          console.error('Element still not found after fetching:', item);
-          // Create a mock element if it's still not found
-          const mockElement = {
-            id: item.id,
-            name: item.name || `Element ${item.id}`,
-            emoji: "❓",
-            is_basic: false,
-            created_at: new Date().toISOString(),
-            discovered_by: null
-          };
-          console.log('Using mock element instead:', mockElement);
-          addElementToWorkbenchInternal(mockElement, position);
-        }
-      }).catch(error => {
-        console.error('Error fetching elements:', error);
-        // Create a mock element if there's an error
-        const mockElement = {
-          id: item.id,
-          name: item.name || `Element ${item.id}`,
-          emoji: "❓",
-          is_basic: false,
-          created_at: new Date().toISOString(),
-          discovered_by: null
-        };
-        console.log('Using mock element instead:', mockElement);
-        addElementToWorkbenchInternal(mockElement, position);
-      });
+    // If the item already has all the necessary properties, use it directly
+    if (item.id && item.name && item.emoji) {
+      // Create a complete element object
+      const completeElement = {
+        id: item.id,
+        name: item.name,
+        emoji: item.emoji || "✨",
+        displayName: item.displayName || item.name,
+        is_basic: item.is_basic || false
+      };
+      
+      console.log('Using provided element data:', completeElement);
+      addElementToWorkbenchInternal(completeElement, position);
       return;
     }
     
-    addElementToWorkbenchInternal(element, position);
+    // Otherwise, try to find the element in the store
+    const element = useElementStore.getState().getElementById(item.id);
+    
+    if (!element) {
+      console.error('Element not found in store:', item);
+      
+      // If we have enough information in the item, use that instead
+      if (item.id && (item.name || item.displayName)) {
+        const fallbackElement = {
+          id: item.id,
+          name: item.name || item.displayName || `Element ${item.id}`,
+          emoji: item.emoji || "✨",
+          displayName: item.displayName || item.name || `Element ${item.id}`,
+          is_basic: item.is_basic || false
+        };
+        console.log('Using fallback element from provided data:', fallbackElement);
+        addElementToWorkbenchInternal(fallbackElement, position);
+      } else {
+        // Try to fetch elements if they're not loaded yet
+        console.log('Attempting to fetch elements...');
+        useElementStore.getState().fetchElements()
+          .then(() => {
+            // Try again after fetching
+            const refetchedElement = useElementStore.getState().getElementById(item.id);
+            if (refetchedElement) {
+              console.log('Element found after fetching:', refetchedElement);
+              addElementToWorkbenchInternal(refetchedElement, position);
+            } else {
+              console.error('Element still not found after fetching:', item);
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching elements:', error);
+          });
+      }
+    } else {
+      console.log('Element found in store:', element);
+      addElementToWorkbenchInternal(element, position);
+    }
   };
   
   // Internal function to add element to workbench
   const addElementToWorkbenchInternal = (element, position) => {
+    if (!element) {
+      console.error('Cannot add null element to workbench');
+      return;
+    }
+    
     console.log('Adding element to workbench:', element, 'at position:', position);
     
-    // Use displayName if available, otherwise use name
+    // Create a complete element object with all required properties
     const elementToAdd = {
-      ...element,
-      // If element has a displayName, use it to override the name
-      name: element.displayName || element.name,
+      id: element.id,
+      name: element.name,
+      displayName: element.displayName || element.name,
+      emoji: element.emoji || "✨",
+      is_basic: element.is_basic || false,
       workbenchId: `${element.id}-${Date.now()}`, // Unique ID for this instance
       position
     };
@@ -574,7 +607,7 @@ const Workbench = ({ onDiscovery }) => {
                   ease: "linear"
                 }}
               />
-              <p className="mt-4 text-white font-medium">Combining elements...</p>
+              <p className="mt-4 text-white font-medium">{t('ui.combining')}</p>
             </div>
           </motion.div>
         )}
@@ -588,13 +621,13 @@ const Workbench = ({ onDiscovery }) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <p className="text-textSecondary mb-2">Drag elements here to combine them</p>
+            <p className="text-textSecondary mb-2">{t('messages.dragHint')}</p>
             <p className="text-xs text-textSecondary opacity-70">
-              Drag elements from the library or click on them to add to the workbench.
+              {t('ui.dragToWorkbench')}
               <br />
-              Right-click elements on the workbench to duplicate them.
+              {t('ui.rightClickToDuplicate')}
               <br />
-              Drag one element onto another to combine them.
+              {t('ui.dragToCombine')}
             </p>
           </motion.div>
         </div>
@@ -611,7 +644,7 @@ const Workbench = ({ onDiscovery }) => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          Clear
+          {t('ui.clear')}
         </motion.button>
       )}
     </div>

@@ -73,7 +73,7 @@ function App() {
             <div className="flex items-center gap-4">
               {playerName && (
                 <div className="text-sm">
-                  Playing as: <span className="font-bold">{playerName}</span>
+                  {t('ui.playingAs')}: <span className="font-bold">{playerName}</span>
                 </div>
               )}
               
@@ -81,7 +81,7 @@ function App() {
                 className={`btn ${darkMode ? 'bg-accent hover:bg-accent/80' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
                 onClick={() => setIsSettingsOpen(true)}
               >
-                Settings
+                {t('ui.settings')}
               </button>
             </div>
           </div>

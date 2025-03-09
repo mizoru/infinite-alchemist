@@ -33,7 +33,12 @@
     "allElements": "All Elements",
     "basicElements": "Basic Elements",
     "discovered": "Discovered",
-    "recentDiscoveries": "Recent Discoveries"
+    "recentDiscoveries": "Recent Discoveries",
+    "combining": "Combining elements...",
+    "dragToWorkbench": "Drag elements from the library or click on them to add to the workbench.",
+    "rightClickToDuplicate": "Right-click elements on the workbench to duplicate them.",
+    "dragToCombine": "Drag one element onto another to combine them.",
+    "playingAs": "Playing as"
   },
   "gameModes": {
     "classic": "Classic Mode",
@@ -49,7 +54,7 @@
     "error": "An error occurred",
     "loading": "Loading...",
     "emptyLibrary": "Your library is empty. Start combining elements!",
-    "dragHint": "Drag elements to combine them",
+    "dragHint": "Drag elements here to combine them",
     "noResults": "No results found"
   }
 } 

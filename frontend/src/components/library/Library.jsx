@@ -54,6 +54,13 @@ const Library = () => {
 
   // Handle element click (add to workbench)
   const handleElementClick = (element) => {
+    console.log('Element clicked in library:', element);
+    
+    if (!element || !element.id) {
+      console.error('Invalid element clicked:', element);
+      return;
+    }
+    
     // Get the translated name for the element
     let displayName = element.name;
     
@@ -75,11 +82,22 @@ const Library = () => {
       }
     }
     
+    // Create a complete element object to pass to the workbench
+    const elementToAdd = {
+      id: element.id,
+      name: element.name,
+      emoji: element.emoji,
+      is_basic: element.is_basic,
+      language: element.language,
+      displayName: displayName
+    };
+    
+    console.log('Dispatching add-to-workbench event with element:', elementToAdd);
+    
     // Dispatch a custom event to add the element to the workbench
     const event = new CustomEvent('add-to-workbench', { 
       detail: {
-        ...element,
-        displayName
+        element: elementToAdd
       }
     });
     window.dispatchEvent(event);

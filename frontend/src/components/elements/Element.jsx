@@ -45,12 +45,15 @@ const Element = ({ element, onClick, onDuplicate, size = 'medium', className = '
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'element',
     item: () => {
-      console.log('Starting drag for element:', element);
+      const displayName = getElementName(element);
+      console.log('Starting drag for element:', element, 'with displayName:', displayName);
       return { 
         id: element.id, 
         name: element.name,
-        displayName: getElementName(element), // Add translated name for display
+        displayName: displayName, // Add translated name for display
         emoji: element.emoji,
+        is_basic: element.is_basic,
+        language: element.language,
         workbenchId: element.workbenchId,
         isOnWorkbench: isOnWorkbench
       };
@@ -65,7 +68,7 @@ const Element = ({ element, onClick, onDuplicate, size = 'medium', className = '
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
-  }), [isOnWorkbench, element.id, element.workbenchId, element.name]);
+  }), [isOnWorkbench, element.id, element.workbenchId, element.name, element.emoji, element.is_basic]);
 
   // Size classes
   const sizeClasses = {
