@@ -297,7 +297,7 @@ Now, combine {element1} and {element2}:"""
                     capitalized_words = re.findall(r'\b([A-Z][a-z]+)\b', response)
                     if capitalized_words:
                         # Filter out common words and the input elements
-                        common_words = ["Result", "Emoji", "Description", "Element", "Name", element1, element2]
+                        common_words = ["Result", "Emoji", "Element", "Name", element1, element2]
                         filtered_words = [word for word in capitalized_words if word not in common_words]
                         if filtered_words:
                             result_name = filtered_words[0]
@@ -309,7 +309,7 @@ Now, combine {element1} and {element2}:"""
                     for line in lines:
                         line = line.strip()
                         # Skip empty lines and lines with common words
-                        if not line or any(word in line.lower() for word in ["result", "emoji", "description", "element", "name"]):
+                        if not line or any(word in line.lower() for word in ["result", "emoji", "element", "name"]):
                             continue
                         # Skip lines that are too long
                         if len(line) > 30:

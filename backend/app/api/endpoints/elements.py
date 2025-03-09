@@ -82,7 +82,6 @@ def get_element(element_id: int, db: Session = Depends(get_db)):
         "id": element.id,
         "name": element.name,
         "emoji": element.emoji,
-        "description": element.description,
         "is_basic": bool(element.is_basic),
         "created_at": element.created_at,
         "discovered_by": None  # Set discovered_by to None for now
@@ -98,7 +97,6 @@ def create_element(element: ElementCreate, db: Session = Depends(get_db)):
     db_element = DBElement(
         name=element.name,
         emoji=element.emoji,
-        description=element.description,
         is_basic=element.is_basic
     )
     db.add(db_element)
@@ -205,7 +203,6 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
         result_element = DBElement(
             name=llm_result["result"],
             emoji=llm_result.get("emoji", "✨"),
-            description=llm_result.get("description", ""),
             is_basic=False,
             language=lang,  # Set the language
             created_by=combination.player_name

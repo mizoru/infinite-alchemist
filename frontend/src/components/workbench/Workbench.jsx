@@ -261,7 +261,6 @@ const Workbench = ({ onDiscovery }) => {
             id: item.id,
             name: item.name || `Element ${item.id}`,
             emoji: "❓",
-            description: "This element couldn't be loaded from the backend.",
             is_basic: false,
             created_at: new Date().toISOString(),
             discovered_by: null
@@ -276,7 +275,6 @@ const Workbench = ({ onDiscovery }) => {
           id: item.id,
           name: item.name || `Element ${item.id}`,
           emoji: "❓",
-          description: "This element couldn't be loaded from the backend.",
           is_basic: false,
           created_at: new Date().toISOString(),
           discovered_by: null

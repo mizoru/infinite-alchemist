@@ -42,10 +42,6 @@ const DiscoveryNotification = ({ discovery, onClose, autoCloseDelay = 5000 }) =>
           <Element element={discovery.result} />
         </div>
         
-        {discovery.description && (
-          <p className="text-sm text-textSecondary mt-2">{discovery.description}</p>
-        )}
-        
         <div className="mt-4 text-xs text-textSecondary">
           {discovery.first_discoverer && (
             <p>First discovered by: {discovery.first_discoverer}</p>

@@ -50,7 +50,6 @@ def migrate_db():
                     id INTEGER PRIMARY KEY,
                     name VARCHAR NOT NULL,
                     emoji VARCHAR DEFAULT '✨',
-                    description VARCHAR DEFAULT '',
                     is_basic BOOLEAN DEFAULT 0,
                     language VARCHAR DEFAULT 'universal',
                     universal_id INTEGER REFERENCES elements(id),
@@ -62,7 +61,7 @@ def migrate_db():
             # Copy data from the old table to the new one
             conn.execute(text("""
                 INSERT INTO elements_new 
-                SELECT id, name, emoji, description, is_basic, language, universal_id, created_at, created_by 
+                SELECT id, name, emoji, is_basic, language, universal_id, created_at, created_by 
                 FROM elements
             """))
             
@@ -103,7 +102,6 @@ def migrate_db():
                 ru_element = DBElement(
                     name=en_to_ru[element.name],
                     emoji=element.emoji,
-                    description=f"Russian version of {element.name}",
                     is_basic=True,
                     language="ru",
                     universal_id=element.id

@@ -7,25 +7,25 @@ Base.metadata.create_all(bind=engine)
 
 # Universal basic elements
 UNIVERSAL_BASIC_ELEMENTS = [
-    {"name": "Water", "emoji": "💧", "description": "A clear, colorless liquid essential for life.", "is_basic": True, "language": "universal"},
-    {"name": "Fire", "emoji": "🔥", "description": "The rapid oxidation of material producing heat and light.", "is_basic": True, "language": "universal"},
-    {"name": "Earth", "emoji": "🌍", "description": "The solid ground beneath us and the material that forms it.", "is_basic": True, "language": "universal"},
-    {"name": "Air", "emoji": "💨", "description": "The invisible mixture of gases that surrounds the planet.", "is_basic": True, "language": "universal"},
+    {"name": "Water", "emoji": "💧", "is_basic": True, "language": "universal"},
+    {"name": "Fire", "emoji": "🔥", "is_basic": True, "language": "universal"},
+    {"name": "Earth", "emoji": "🌍", "is_basic": True, "language": "universal"},
+    {"name": "Air", "emoji": "💨", "is_basic": True, "language": "universal"},
 ]
 
 # Language-specific names for basic elements
 LANGUAGE_BASIC_ELEMENTS = {
     "en": [
-        {"name": "Water", "emoji": "💧", "description": "A clear, colorless liquid essential for life."},
-        {"name": "Fire", "emoji": "🔥", "description": "The rapid oxidation of material producing heat and light."},
-        {"name": "Earth", "emoji": "🌍", "description": "The solid ground beneath us and the material that forms it."},
-        {"name": "Air", "emoji": "💨", "description": "The invisible mixture of gases that surrounds the planet."},
+        {"name": "Water", "emoji": "💧"},
+        {"name": "Fire", "emoji": "🔥"},
+        {"name": "Earth", "emoji": "🌍"},
+        {"name": "Air", "emoji": "💨"},
     ],
     "ru": [
-        {"name": "Вода", "emoji": "💧", "description": "Прозрачная жидкость, необходимая для жизни."},
-        {"name": "Огонь", "emoji": "🔥", "description": "Быстрое окисление материала, производящее тепло и свет."},
-        {"name": "Земля", "emoji": "🌍", "description": "Твёрдая поверхность под нами и материал, из которого она состоит."},
-        {"name": "Воздух", "emoji": "💨", "description": "Невидимая смесь газов, окружающая планету."},
+        {"name": "Вода", "emoji": "💧"},
+        {"name": "Огонь", "emoji": "🔥"},
+        {"name": "Земля", "emoji": "🌍"},
+        {"name": "Воздух", "emoji": "💨"},
     ]
 }
 
@@ -57,7 +57,6 @@ def init_db():
                 element = DBElement(
                     name=element_data["name"],
                     emoji=element_data["emoji"],
-                    description=element_data["description"],
                     is_basic=True,
                     language=lang,
                     universal_id=universal_id

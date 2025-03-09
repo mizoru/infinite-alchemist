@@ -5,7 +5,6 @@ from datetime import datetime
 class ElementBase(BaseModel):
     name: str
     emoji: Optional[str] = None
-    description: Optional[str] = None
     is_basic: Union[int, bool] = False
     language: str = "universal"  # "en", "ru", or "universal"
     universal_id: Optional[int] = None  # Reference to universal element

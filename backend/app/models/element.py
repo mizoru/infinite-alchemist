@@ -33,7 +33,6 @@ class DBElement(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     emoji = Column(String, default="✨")
-    description = Column(String, default="")
     is_basic = Column(Boolean, default=False)
     language = Column(String, default="universal", index=True)  # "en", "ru", or "universal"
     universal_id = Column(Integer, ForeignKey("elements.id"), nullable=True)  # Reference to universal element
@@ -53,7 +52,6 @@ class DBElement(Base):
             "id": self.id,
             "name": self.name,
             "emoji": self.emoji,
-            "description": self.description,
             "is_basic": self.is_basic,
             "language": self.language,
             "universal_id": self.universal_id,
@@ -68,7 +66,6 @@ class Element:
     id: Optional[int] = None
     name: str = ""
     emoji: str = "✨"
-    description: str = ""
     discovered: bool = True
     created_by: Optional[str] = None
     created_from: List[int] = field(default_factory=list)
@@ -79,7 +76,6 @@ class Element:
             "id": self.id,
             "name": self.name,
             "emoji": self.emoji,
-            "description": self.description,
             "discovered": self.discovered,
             "created_by": self.created_by,
             "created_from": self.created_from,
@@ -92,7 +88,6 @@ class Element:
             id=data.get("id"),
             name=data.get("name", ""),
             emoji=data.get("emoji", "✨"),
-            description=data.get("description", ""),
             discovered=data.get("discovered", True),
             created_by=data.get("created_by"),
             created_from=data.get("created_from", []),

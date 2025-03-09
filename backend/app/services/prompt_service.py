@@ -52,8 +52,7 @@ class PromptService:
         Return your answer in the following JSON format:
         {{
             "result": "name of the resulting element",
-            "emoji": "an appropriate emoji for the element",
-            "description": "a brief description of the element"
+            "emoji": "an appropriate emoji for the element"
         }}
         
         Only return the JSON, nothing else.
@@ -74,8 +73,7 @@ class PromptService:
         Верните ответ в следующем JSON формате:
         {{
             "result": "название получившегося элемента",
-            "emoji": "подходящий эмодзи для элемента",
-            "description": "краткое описание элемента"
+            "emoji": "подходящий эмодзи для элемента"
         }}
         
         Верните только JSON, ничего больше.
@@ -100,8 +98,7 @@ class PromptService:
         Return your answer in the following JSON format:
         {{
             "result": "name of the resulting element",
-            "emoji": "an appropriate emoji for the element",
-            "description": "a brief description of the element"
+            "emoji": "an appropriate emoji for the element"
         }}
         
         Only return the JSON, nothing else.

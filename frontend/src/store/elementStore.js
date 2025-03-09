@@ -10,7 +10,6 @@ const MOCK_ELEMENTS = {
       id: 1,
       name: "Water",
       emoji: "💧",
-      description: "A clear, colorless liquid essential for life.",
       is_basic: true,
       created_at: "2025-03-05T20:02:42",
       discovered_by: null
@@ -19,7 +18,6 @@ const MOCK_ELEMENTS = {
       id: 2,
       name: "Fire",
       emoji: "🔥",
-      description: "The rapid oxidation of material producing heat and light.",
       is_basic: true,
       created_at: "2025-03-05T20:02:42",
       discovered_by: null
@@ -28,7 +26,6 @@ const MOCK_ELEMENTS = {
       id: 3,
       name: "Earth",
       emoji: "🌍",
-      description: "The solid ground beneath us and the material that forms it.",
       is_basic: true,
       created_at: "2025-03-05T20:02:42",
       discovered_by: null
@@ -37,7 +34,6 @@ const MOCK_ELEMENTS = {
       id: 4,
       name: "Air",
       emoji: "💨",
-      description: "The invisible mixture of gases that surrounds the planet.",
       is_basic: true,
       created_at: "2025-03-05T20:02:42",
       discovered_by: null
@@ -48,7 +44,6 @@ const MOCK_ELEMENTS = {
       id: 5,
       name: "Вода",
       emoji: "💧",
-      description: "Прозрачная жидкость, необходимая для жизни.",
       is_basic: true,
       created_at: "2025-03-05T20:02:42",
       discovered_by: null
@@ -57,7 +52,6 @@ const MOCK_ELEMENTS = {
       id: 6,
       name: "Огонь",
       emoji: "🔥",
-      description: "Быстрое окисление материала, производящее тепло и свет.",
       is_basic: true,
       created_at: "2025-03-05T20:02:42",
       discovered_by: null
@@ -66,7 +60,6 @@ const MOCK_ELEMENTS = {
       id: 7,
       name: "Земля",
       emoji: "🌍",
-      description: "Твёрдая поверхность под нами и материал, из которого она состоит.",
       is_basic: true,
       created_at: "2025-03-05T20:02:42",
       discovered_by: null
@@ -75,7 +68,6 @@ const MOCK_ELEMENTS = {
       id: 8,
       name: "Воздух",
       emoji: "💨",
-      description: "Невидимая смесь газов, окружающая планету.",
       is_basic: true,
       created_at: "2025-03-05T20:02:42",
       discovered_by: null

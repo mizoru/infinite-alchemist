@@ -16,10 +16,10 @@ class ElementService:
         """Load elements from the database or file."""
         # For now, we'll just create some basic elements
         basic_elements = [
-            Element(id=1, name="Water", emoji="💧", description="A clear liquid essential for life"),
-            Element(id=2, name="Fire", emoji="🔥", description="Heat and light produced by burning"),
-            Element(id=3, name="Earth", emoji="🌍", description="The ground beneath our feet"),
-            Element(id=4, name="Air", emoji="💨", description="The invisible gas we breathe"),
+            Element(id=1, name="Water", emoji="💧"),
+            Element(id=2, name="Fire", emoji="🔥"),
+            Element(id=3, name="Earth", emoji="🌍"),
+            Element(id=4, name="Air", emoji="💨"),
         ]
         
         # Add elements to the dictionary

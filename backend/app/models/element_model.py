@@ -8,7 +8,6 @@ class Element:
     id: Optional[int] = None
     name: str = ""
     emoji: str = "✨"
-    description: str = ""
     discovered: bool = True
     created_by: Optional[str] = None
     created_from: List[int] = field(default_factory=list)
@@ -19,7 +18,6 @@ class Element:
             "id": self.id,
             "name": self.name,
             "emoji": self.emoji,
-            "description": self.description,
             "discovered": self.discovered,
             "created_by": self.created_by,
             "created_from": self.created_from,
@@ -32,7 +30,6 @@ class Element:
             id=data.get("id"),
             name=data.get("name", ""),
             emoji=data.get("emoji", "✨"),
-            description=data.get("description", ""),
             discovered=data.get("discovered", True),
             created_by=data.get("created_by"),
             created_from=data.get("created_from", []),

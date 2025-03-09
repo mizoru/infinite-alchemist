@@ -180,7 +180,6 @@ elements
 ├── id (PK)
 ├── name (String)
 ├── emoji (String)
-├── description (String)
 ├── is_basic (Boolean)
 ├── language (String) - "en", "ru", or "universal"
 ├── universal_id (Integer, nullable) - Reference to the universal element
