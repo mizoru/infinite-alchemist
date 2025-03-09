@@ -179,6 +179,17 @@ const Workbench = ({ onDiscovery }) => {
       const workbenchRect = workbenchRef.current.getBoundingClientRect();
       const dropPosition = monitor.getClientOffset();
       
+      // Check if dropPosition is null
+      if (!dropPosition) {
+        console.error('Drop position is null');
+        // Use center of workbench as fallback
+        const x = workbenchRect.width / 2;
+        const y = workbenchRect.height / 2;
+        console.log('Using fallback position:', { x, y });
+        addElementToWorkbench(item, { x, y });
+        return { dropped: true };
+      }
+      
       // Calculate position within the workbench
       const x = dropPosition.x - workbenchRect.left;
       const y = dropPosition.y - workbenchRect.top;

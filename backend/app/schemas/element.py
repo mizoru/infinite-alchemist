@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Any
 from datetime import datetime
 
 class ElementBase(BaseModel):
@@ -7,6 +7,8 @@ class ElementBase(BaseModel):
     emoji: Optional[str] = None
     description: Optional[str] = None
     is_basic: Union[int, bool] = False
+    language: str = "universal"  # "en", "ru", or "universal"
+    universal_id: Optional[int] = None  # Reference to universal element
 
 class ElementCreate(ElementBase):
     pass
@@ -41,7 +43,9 @@ class CombinationResponse(BaseModel):
 class Element(ElementBase):
     id: int
     created_at: datetime
-    discovered_by: Optional[str] = None
+    discovered_by: Optional[Any] = None  # Can be string, list, or None
+    language: str = "universal"  # Add this line if not already present
+    universal_id: Optional[int] = None  # Add this line if not already present
 
     class Config:
         from_attributes = True

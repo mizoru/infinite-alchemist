@@ -160,6 +160,59 @@ The Library displays all discovered elements and allows users to:
 - Filter elements by category
 - Drag elements to the Workbench or click to add them
 
+## Internationalization Architecture
+
+Infinite Alchemist supports multiple languages with language-specific crafting trees, allowing for culturally diverse element combinations.
+
+### Key Features
+
+- **Universal Basic Elements**: The four basic elements (Water, Fire, Earth, Air) are universal across all languages but have language-specific names.
+- **Language-Specific Crafting Trees**: Each language has its own crafting tree, allowing for culturally relevant combinations.
+- **Shared Element IDs**: Elements have a universal ID that maps to language-specific variants.
+- **LLM Integration**: The LLM generates language-specific combinations based on the selected language.
+
+### Database Structure
+
+The database is designed to support language-specific elements:
+
+```
+elements
+├── id (PK)
+├── name (String)
+├── emoji (String)
+├── description (String)
+├── is_basic (Boolean)
+├── language (String) - "en", "ru", or "universal"
+├── universal_id (Integer, nullable) - Reference to the universal element
+├── created_at (DateTime)
+└── created_by (String, nullable)
+```
+
+Element combinations are also language-specific:
+
+```
+element_combinations
+├── element1_id (PK, FK -> elements.id)
+├── element2_id (PK, FK -> elements.id)
+├── result_id (PK, FK -> elements.id)
+├── language (PK, String) - "en", "ru", etc.
+├── created_at (DateTime)
+└── discovered_by (String, nullable)
+```
+
+### Frontend Implementation
+
+The frontend stores elements separately for each language and sends the current language to the backend when combining elements. The UI is fully translated using i18next.
+
+### Migration
+
+If you're upgrading from a previous version, run the migration script to update your database:
+
+```
+cd backend
+python migrate.py
+```
+
 ## Acknowledgments
 
 - Inspired by [Infinite Craft](https://neal.fun/infinite-craft/)

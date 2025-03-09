@@ -12,6 +12,7 @@ element_combinations = Table(
     Column("element1_id", Integer, ForeignKey("elements.id"), primary_key=True),
     Column("element2_id", Integer, ForeignKey("elements.id"), primary_key=True),
     Column("result_id", Integer, ForeignKey("elements.id"), primary_key=True),
+    Column("language", String, primary_key=True),  # "en", "ru", etc.
     Column("created_at", DateTime(timezone=True), server_default=func.now()),
     Column("discovered_by", String, nullable=True),
 )
@@ -30,18 +31,21 @@ class DBElement(Base):
     __tablename__ = "elements"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True)
+    name = Column(String, index=True)
     emoji = Column(String, default="✨")
     description = Column(String, default="")
     is_basic = Column(Boolean, default=False)
+    language = Column(String, default="universal", index=True)  # "en", "ru", or "universal"
+    universal_id = Column(Integer, ForeignKey("elements.id"), nullable=True)  # Reference to universal element
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     created_by = Column(String, nullable=True)
     
     # Relationships
     discovered_by = relationship("DiscoveryHistory", back_populates="element")
+    universal_element = relationship("DBElement", remote_side=[id], backref="language_variants")
     
     def __repr__(self):
-        return f"<Element(id={self.id}, name='{self.name}')>"
+        return f"<Element(id={self.id}, name='{self.name}', language='{self.language}')>"
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert the database model to a dictionary."""
@@ -51,7 +55,10 @@ class DBElement(Base):
             "emoji": self.emoji,
             "description": self.description,
             "is_basic": self.is_basic,
+            "language": self.language,
+            "universal_id": self.universal_id,
             "created_by": self.created_by,
+            "created_at": self.created_at,
         }
 
 @dataclass

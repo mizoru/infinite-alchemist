@@ -7,8 +7,16 @@ const Element = ({ element, onClick, onDuplicate, size = 'medium', className = '
   const { t } = useTranslation();
   const elementRef = useRef(null);
   
+  // Handle null element
+  if (!element) {
+    console.warn('Element component received null element');
+    return null;
+  }
+  
   // Translate basic element names
   const getElementName = (element) => {
+    if (!element) return 'Unknown';
+    
     if (element.is_basic === true || element.is_basic === 1) {
       // Check if this is a basic element that needs translation
       // Map of element names to translation keys

@@ -5,19 +5,27 @@ from app.models.element import DBElement, PlayerStats, player_elements
 # Create tables
 Base.metadata.create_all(bind=engine)
 
-# Basic elements to initialize
-BASIC_ELEMENTS = {
+# Universal basic elements
+UNIVERSAL_BASIC_ELEMENTS = [
+    {"name": "Water", "emoji": "💧", "description": "A clear, colorless liquid essential for life.", "is_basic": True, "language": "universal"},
+    {"name": "Fire", "emoji": "🔥", "description": "The rapid oxidation of material producing heat and light.", "is_basic": True, "language": "universal"},
+    {"name": "Earth", "emoji": "🌍", "description": "The solid ground beneath us and the material that forms it.", "is_basic": True, "language": "universal"},
+    {"name": "Air", "emoji": "💨", "description": "The invisible mixture of gases that surrounds the planet.", "is_basic": True, "language": "universal"},
+]
+
+# Language-specific names for basic elements
+LANGUAGE_BASIC_ELEMENTS = {
     "en": [
-        {"name": "Water", "emoji": "💧", "description": "A clear, colorless liquid essential for life.", "is_basic": True},
-        {"name": "Fire", "emoji": "🔥", "description": "The rapid oxidation of material producing heat and light.", "is_basic": True},
-        {"name": "Earth", "emoji": "🌍", "description": "The solid ground beneath us and the material that forms it.", "is_basic": True},
-        {"name": "Air", "emoji": "💨", "description": "The invisible mixture of gases that surrounds the planet.", "is_basic": True},
+        {"name": "Water", "emoji": "💧", "description": "A clear, colorless liquid essential for life."},
+        {"name": "Fire", "emoji": "🔥", "description": "The rapid oxidation of material producing heat and light."},
+        {"name": "Earth", "emoji": "🌍", "description": "The solid ground beneath us and the material that forms it."},
+        {"name": "Air", "emoji": "💨", "description": "The invisible mixture of gases that surrounds the planet."},
     ],
     "ru": [
-        {"name": "Вода", "emoji": "💧", "description": "Прозрачная жидкость, необходимая для жизни.", "is_basic": True},
-        {"name": "Огонь", "emoji": "🔥", "description": "Быстрое окисление материала, производящее тепло и свет.", "is_basic": True},
-        {"name": "Земля", "emoji": "🌍", "description": "Твёрдая поверхность под нами и материал, из которого она состоит.", "is_basic": True},
-        {"name": "Воздух", "emoji": "💨", "description": "Невидимая смесь газов, окружающая планету.", "is_basic": True},
+        {"name": "Вода", "emoji": "💧", "description": "Прозрачная жидкость, необходимая для жизни."},
+        {"name": "Огонь", "emoji": "🔥", "description": "Быстрое окисление материала, производящее тепло и свет."},
+        {"name": "Земля", "emoji": "🌍", "description": "Твёрдая поверхность под нами и материал, из которого она состоит."},
+        {"name": "Воздух", "emoji": "💨", "description": "Невидимая смесь газов, окружающая планету."},
     ]
 }
 
@@ -30,31 +38,51 @@ def init_db():
             print(f"Database already contains {existing_count} elements. Skipping initialization.")
             return
         
-        # Add basic elements for each language
-        basic_element_ids = []
-        for lang, elements in BASIC_ELEMENTS.items():
-            for element_data in elements:
-                element = DBElement(**element_data)
+        # Add universal basic elements first
+        universal_elements = {}
+        for element_data in UNIVERSAL_BASIC_ELEMENTS:
+            element = DBElement(**element_data)
+            db.add(element)
+            db.flush()  # Flush to get the ID
+            universal_elements[element.name] = element.id
+        
+        # Add language-specific variants of basic elements
+        for lang, elements in LANGUAGE_BASIC_ELEMENTS.items():
+            for i, element_data in enumerate(elements):
+                # Get the corresponding universal element
+                universal_name = UNIVERSAL_BASIC_ELEMENTS[i]["name"]
+                universal_id = universal_elements[universal_name]
+                
+                # Create language-specific element
+                element = DBElement(
+                    name=element_data["name"],
+                    emoji=element_data["emoji"],
+                    description=element_data["description"],
+                    is_basic=True,
+                    language=lang,
+                    universal_id=universal_id
+                )
                 db.add(element)
-                db.flush()  # Flush to get the ID
-                basic_element_ids.append(element.id)
         
         db.commit()
-        print(f"Added {len(basic_element_ids)} basic elements to the database.")
+        print(f"Added {len(universal_elements)} universal basic elements and their language variants to the database.")
         
         # Make basic elements available to all existing players
         players = db.query(PlayerStats).all()
         for player in players:
-            for element_id in basic_element_ids:
+            # Get all basic elements (both universal and language-specific)
+            basic_elements = db.query(DBElement).filter(DBElement.is_basic == True).all()
+            
+            for element in basic_elements:
                 # Add basic elements to player's unlocked elements
                 db.execute(
                     player_elements.insert().values(
                         player_name=player.player_name,
-                        element_id=element_id
+                        element_id=element.id
                     )
                 )
             # Update player stats
-            player.elements_unlocked += len(basic_element_ids)
+            player.elements_unlocked += len(basic_elements)
         
         db.commit()
         if players:

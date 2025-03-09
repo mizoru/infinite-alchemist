@@ -54,7 +54,7 @@
 ## 📝 Next Tasks
 
 ### Backend
-- [ ] Create database models for elements and combinations
+- [x] Create database models for elements and combinations with language support
 - [ ] Set up API endpoints for:
   - [ ] Element creation
   - [ ] Element combination
@@ -192,12 +192,12 @@
 ## 📝 Next Tasks
 
 ### Internationalization Improvements
-- [ ] Refactor the internationalization architecture:
-  - [ ] Create a proper mapping between element IDs across languages
-  - [ ] Implement a more robust translation system for element names
-  - [ ] Add a language detection system based on browser settings
+- [x] Refactor the internationalization architecture:
+  - [x] Create a proper mapping between element IDs across languages
+  - [x] Implement a more robust translation system for element names
+  - [x] Implement proper handling of language-specific elements in the database
+  - [ ] Add language detection system based on browser settings
   - [ ] Create a language context provider to avoid prop drilling
-  - [ ] Implement proper handling of language-specific elements in the database
   - [ ] Add language switching without losing workbench state
   - [ ] Implement automatic translation of newly discovered elements
   - [ ] Add support for more languages (e.g., Spanish, French, German)
@@ -205,4 +205,4 @@
   - [ ] Add language-specific fonts and text direction support
 
 ### Backend
-- [ ] Create database models for elements and combinations
+- [x] Create database models for elements and combinations with language support

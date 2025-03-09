@@ -11,27 +11,25 @@ router = APIRouter()
 llm_service = LLMService()
 
 @router.get("/", response_model=ElementList)
-def get_elements(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def get_elements(
+    skip: int = 0, 
+    limit: int = 100, 
+    language: str = "en",
+    db: Session = Depends(get_db)
+):
     """
     Get all elements with pagination.
+    
+    - **skip**: Number of elements to skip
+    - **limit**: Maximum number of elements to return
+    - **language**: Language code ("en", "ru", or "universal")
     """
-    elements = db.query(DBElement).offset(skip).limit(limit).all()
+    # Get elements for the specified language and universal elements
+    elements = db.query(DBElement).filter(
+        (DBElement.language == language) | (DBElement.language == "universal")
+    ).offset(skip).limit(limit).all()
     
-    # Convert elements to dictionaries to handle the discovered_by relationship
-    element_dicts = []
-    for element in elements:
-        element_dict = {
-            "id": element.id,
-            "name": element.name,
-            "emoji": element.emoji,
-            "description": element.description,
-            "is_basic": bool(element.is_basic),
-            "created_at": element.created_at,
-            "discovered_by": None  # Set discovered_by to None for now
-        }
-        element_dicts.append(element_dict)
-    
-    return {"elements": element_dicts}
+    return {"elements": elements}
 
 @router.get("/player/{player_name}", response_model=PlayerElementList)
 def get_player_elements(player_name: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -112,20 +110,30 @@ def create_element(element: ElementCreate, db: Session = Depends(get_db)):
 def combine_elements(combination: CombinationRequest, db: Session = Depends(get_db)):
     """
     Combine two elements to create a new one.
+    
+    - **element1_id**: ID of the first element
+    - **element2_id**: ID of the second element
+    - **player_name**: Name of the player (optional)
+    - **lang**: Language code ("en" or "ru")
+    - **prompt_name**: Name of the prompt template to use
     """
-    # Get the elements from the database
+    # Get the elements
     element1 = db.query(DBElement).filter(DBElement.id == combination.element1_id).first()
     element2 = db.query(DBElement).filter(DBElement.id == combination.element2_id).first()
     
     if not element1 or not element2:
         raise HTTPException(status_code=404, detail="One or both elements not found")
     
-    # Check if this combination already exists
+    # Get the language from the request
+    lang = combination.lang if hasattr(combination, 'lang') else "en"
+    
+    # Check if the combination already exists for this language
+    # Sort element IDs to ensure consistent keys
+    sorted_ids = sorted([combination.element1_id, combination.element2_id])
     existing_combination = db.query(element_combinations).filter(
-        ((element_combinations.c.element1_id == combination.element1_id) & 
-         (element_combinations.c.element2_id == combination.element2_id)) |
-        ((element_combinations.c.element1_id == combination.element2_id) & 
-         (element_combinations.c.element2_id == combination.element1_id))
+        (element_combinations.c.element1_id == sorted_ids[0]) &
+        (element_combinations.c.element2_id == sorted_ids[1]) &
+        (element_combinations.c.language == lang)
     ).first()
     
     # If the combination exists, return the result
@@ -144,15 +152,7 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
             "element1_id": combination.element1_id,
             "element2_id": combination.element2_id,
             "result_id": result_element.id,
-            "result": {
-                "id": result_element.id,
-                "name": result_element.name,
-                "emoji": result_element.emoji,
-                "description": result_element.description,
-                "is_basic": bool(result_element.is_basic),
-                "created_at": result_element.created_at,
-                "discovered_by": None
-            },
+            "result": result_element.to_dict(),  # Use to_dict() instead of the object directly
             "is_new_discovery": False,
             "is_first_discovery": False
         }
@@ -161,7 +161,7 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
     llm_result = llm_service.combine_elements(
         element1.name, 
         element2.name,
-        lang=combination.lang if hasattr(combination, 'lang') else "en",
+        lang=lang,
         prompt_name=combination.prompt_name if hasattr(combination, 'prompt_name') else "default"
     )
     
@@ -191,7 +191,12 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
             "error": "Failed to generate a new element."
         }
     
-    result_element = db.query(DBElement).filter(DBElement.name == llm_result["result"]).first()
+    # Check if the resulting element already exists in this language
+    result_element = db.query(DBElement).filter(
+        (DBElement.name == llm_result["result"]) & 
+        (DBElement.language == lang)
+    ).first()
+    
     is_new_discovery = False
     is_first_discovery = False
     
@@ -202,6 +207,7 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
             emoji=llm_result.get("emoji", "✨"),
             description=llm_result.get("description", ""),
             is_basic=False,
+            language=lang,  # Set the language
             created_by=combination.player_name
         )
         db.add(result_element)
@@ -220,13 +226,15 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
     # Record the combination
     db.execute(
         element_combinations.insert().values(
-            element1_id=combination.element1_id,
-            element2_id=combination.element2_id,
-            result_id=result_element.id
+            element1_id=sorted_ids[0],
+            element2_id=sorted_ids[1],
+            result_id=result_element.id,
+            language=lang,  # Set the language
+            discovered_by=combination.player_name
         )
     )
     
-    # Update player stats and unlock the element
+    # Unlock the element for the player
     if combination.player_name:
         is_new_unlock = unlock_element_for_player(db, combination.player_name, result_element.id)
         update_player_stats(db, combination.player_name, successful_combinations=1)
@@ -239,15 +247,7 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
         "element1_id": combination.element1_id,
         "element2_id": combination.element2_id,
         "result_id": result_element.id,
-        "result": {
-            "id": result_element.id,
-            "name": result_element.name,
-            "emoji": result_element.emoji,
-            "description": result_element.description,
-            "is_basic": bool(result_element.is_basic),
-            "created_at": result_element.created_at,
-            "discovered_by": combination.player_name if is_first_discovery else None
-        },
+        "result": result_element.to_dict(),  # Use to_dict() instead of the object directly
         "is_new_discovery": is_new_discovery,
         "is_first_discovery": is_first_discovery
     }

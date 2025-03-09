@@ -21,7 +21,8 @@ export const elementsApi = {
   // Get all elements
   getElements: async (skip = 0, limit = 100) => {
     try {
-      const response = await api.get(`/elements?skip=${skip}&limit=${limit}`);
+      const lang = getCurrentLanguage();
+      const response = await api.get(`/elements?skip=${skip}&limit=${limit}&language=${lang}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching elements:', error);
@@ -66,7 +67,30 @@ export const elementsApi = {
       return response.data;
     } catch (error) {
       console.error('Error combining elements:', error);
-      throw error;
+      
+      // If we have a response with an error message, return it
+      if (error.response && error.response.data && error.response.data.detail) {
+        return {
+          element1_id: element1Id,
+          element2_id: element2Id,
+          result_id: null,
+          result: null,
+          is_new_discovery: false,
+          is_first_discovery: false,
+          error: error.response.data.detail
+        };
+      }
+      
+      // Otherwise, return a generic error
+      return {
+        element1_id: element1Id,
+        element2_id: element2Id,
+        result_id: null,
+        result: null,
+        is_new_discovery: false,
+        is_first_discovery: false,
+        error: "Failed to connect to the server. Please try again later."
+      };
     }
   },
 };
