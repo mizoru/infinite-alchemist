@@ -29,7 +29,23 @@ def get_elements(
         (DBElement.language == language) | (DBElement.language == "universal")
     ).offset(skip).limit(limit).all()
     
-    return {"elements": elements}
+    # Convert elements to dictionaries to avoid serialization issues with relationships
+    element_dicts = []
+    for element in elements:
+        element_dict = {
+            "id": element.id,
+            "name": element.name,
+            "emoji": element.emoji,
+            "is_basic": element.is_basic,
+            "language": element.language,
+            "universal_id": element.universal_id,
+            "created_at": element.created_at,
+            "created_by": element.created_by,
+            "discovered_by": None  # Set discovered_by to None to avoid serialization issues
+        }
+        element_dicts.append(element_dict)
+    
+    return {"elements": element_dicts}
 
 @router.get("/player/{player_name}", response_model=PlayerElementList)
 def get_player_elements(player_name: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -83,8 +99,11 @@ def get_element(element_id: int, db: Session = Depends(get_db)):
         "name": element.name,
         "emoji": element.emoji,
         "is_basic": bool(element.is_basic),
+        "language": element.language,
+        "universal_id": element.universal_id,
         "created_at": element.created_at,
-        "discovered_by": None  # Set discovered_by to None for now
+        "created_by": element.created_by,
+        "discovered_by": None  # Set discovered_by to None to avoid serialization issues
     }
     
     return element_dict
@@ -125,6 +144,30 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
     # Get the language from the request
     lang = combination.lang if hasattr(combination, 'lang') else "en"
     
+    # Get the element names in the correct language
+    element1_name = element1.name
+    element2_name = element2.name
+    
+    # If the elements have universal IDs and the language is not the same as the element's language,
+    # try to find the language-specific variants
+    if element1.language != lang and element1.universal_id is not None:
+        # Try to find the language-specific variant
+        lang_variant = db.query(DBElement).filter(
+            (DBElement.universal_id == element1.universal_id) & 
+            (DBElement.language == lang)
+        ).first()
+        if lang_variant:
+            element1_name = lang_variant.name
+    
+    if element2.language != lang and element2.universal_id is not None:
+        # Try to find the language-specific variant
+        lang_variant = db.query(DBElement).filter(
+            (DBElement.universal_id == element2.universal_id) & 
+            (DBElement.language == lang)
+        ).first()
+        if lang_variant:
+            element2_name = lang_variant.name
+    
     # Check if the combination already exists for this language
     # Sort element IDs to ensure consistent keys
     sorted_ids = sorted([combination.element1_id, combination.element2_id])
@@ -157,8 +200,8 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
     
     # If the combination doesn't exist, use the LLM to determine the result
     llm_result = llm_service.combine_elements(
-        element1.name, 
-        element2.name,
+        element1_name, 
+        element2_name,
         lang=lang,
         prompt_name=combination.prompt_name if hasattr(combination, 'prompt_name') else "default"
     )

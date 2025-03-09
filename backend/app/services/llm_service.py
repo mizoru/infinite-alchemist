@@ -2,10 +2,16 @@ import os
 import json
 import re
 import redis
+import logging
+import traceback
 from functools import lru_cache
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 from langchain.llms import OpenAI, HuggingFaceEndpoint
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -56,9 +62,9 @@ class LLMService:
         if self.cache_enabled:
             try:
                 self.redis = redis.from_url(redis_url)
-                print("Redis cache initialized successfully")
+                logger.info("Redis cache initialized successfully")
             except Exception as e:
-                print(f"Failed to initialize Redis cache: {e}")
+                logger.error(f"Failed to initialize Redis cache: {e}")
                 self.cache_enabled = False
         
         # Load prompt service if available
@@ -67,7 +73,7 @@ class LLMService:
             self.prompt_service = PromptService()
             self.use_prompt_service = True
         except (ImportError, Exception) as e:
-            print(f"Prompt service not available: {e}")
+            logger.warning(f"Prompt service not available: {e}")
             self.use_prompt_service = False
     
     def _get_cache_key(self, element1: str, element2: str, lang: str = "en") -> str:
@@ -121,13 +127,13 @@ class LLMService:
             
             # Fallback to English if language not found
             if lang != "en":
-                print(f"Prompt not found for language {lang}, falling back to English")
+                logger.warning(f"Prompt not found for language {lang}, falling back to English")
                 return self._get_formatted_prompt(element1, element2, "en", prompt_name)
             
             # Fallback to default template if nothing else works
             return self.combination_template.format(element1=element1, element2=element2)
         except Exception as e:
-            print(f"Error loading prompt: {e}")
+            logger.error(f"Error loading prompt: {e}")
             return self.combination_template.format(element1=element1, element2=element2)
     
     def _get_llm_response(self, prompt: str) -> str:
@@ -185,7 +191,7 @@ Now, combine {element1} and {element2}:"""
         # Try to get from cache first
         cached_result = self._get_from_cache(element1, element2, lang)
         if cached_result:
-            print(f"Cache hit for {element1} + {element2} ({lang})")
+            logger.info(f"Cache hit for {element1} + {element2} ({lang})")
             return cached_result
         
         # If not in cache, use the LLM
@@ -197,6 +203,12 @@ Now, combine {element1} and {element2}:"""
             else:
                 # Use the memory cache with language support
                 response = self._memory_cache(element1, element2, lang, prompt_name)
+            
+            # Log the full LLM response for debugging
+            logger.info(f"\n\n==== LLM RESPONSE FOR {element1} + {element2} ({lang}) ====")
+            logger.info(f"PROMPT: {self._get_formatted_prompt(element1, element2, lang, prompt_name)}")
+            logger.info(f"RESPONSE: {response}")
+            logger.info("==== END LLM RESPONSE ====\n\n")
             
             # Try to parse the response as JSON
             try:
@@ -210,8 +222,14 @@ Now, combine {element1} and {element2}:"""
                 # Fix common JSON issues
                 cleaned_response = re.sub(r'"emoji":\s*([^",}\s]+)', r'"emoji": "\1"', cleaned_response)
                 
+                # Log the cleaned response
+                logger.info(f"CLEANED RESPONSE: {cleaned_response}")
+                
                 # Parse the JSON
                 result = json.loads(cleaned_response)
+                
+                # Log the parsed result
+                logger.info(f"PARSED RESULT: {result}")
                 
                 # Ensure required fields are present
                 if "valid" in result and result["valid"] == False:
@@ -236,119 +254,26 @@ Now, combine {element1} and {element2}:"""
                     
                 return result
             except (json.JSONDecodeError, ValueError) as e:
-                print(f"Error parsing JSON response: {e}")
-                print(f"Raw response: {response}")
+                logger.error(f"ERROR PARSING JSON RESPONSE: {e}")
+                logger.error(f"RAW RESPONSE: {response}")
+                logger.error(f"CLEANED RESPONSE: {cleaned_response}")
                 
-                # Try to extract information from non-JSON response
-                
-                # Extract result name
-                result_name = None
-                
-                # Look for "Result:" pattern
-                result_match = re.search(r'Result:?\s*([^\n]+)', response, re.IGNORECASE)
-                if result_match:
-                    result_name = result_match.group(1).strip()
-                
-                # If no result found, look for other patterns
-                if not result_name:
-                    # Look for patterns like "result: X" or "The result is X"
-                    result_patterns = [
-                        r'result[:\s]+["\']*([^"\',\n]+)["\',]',
-                        r'result is[:\s]+["\']*([^"\',\n]+)["\',]',
-                        r'would be[:\s]+["\']*([^"\',\n]+)["\',]',
-                        r'created[:\s]+["\']*([^"\',\n]+)["\',]',
-                        r'Element Name:?\s*([^\n]+)',
-                        r'Name:?\s*([^\n]+)',
-                        r'\*\*Name:\*\*\s*([^\n]+)',
-                        r'\*\*Result:\*\*\s*([^\n]+)',
-                    ]
-                    
-                    for pattern in result_patterns:
-                        match = re.search(pattern, response, re.IGNORECASE)
-                        if match:
-                            result_name = match.group(1).strip()
-                            break
-                
-                # Extract emoji
-                emoji = "✨"  # Default emoji
-                emoji_match = re.search(r'Emoji:?\s*([^\n]+)', response, re.IGNORECASE)
-                if emoji_match:
-                    emoji_text = emoji_match.group(1).strip()
-                    # Extract just the emoji character if possible
-                    emoji_char_match = re.search(r'([\u2600-\u27BF\U0001F300-\U0001F64F\U0001F680-\U0001F6FF\u2700-\u27BF])', emoji_text)
-                    if emoji_char_match:
-                        emoji = emoji_char_match.group(1)
-                    else:
-                        emoji = emoji_text
-                else:
-                    # Look for emoji at the beginning of the response
-                    emoji_char_match = re.search(r'^([\u2600-\u27BF\U0001F300-\U0001F64F\U0001F680-\U0001F6FF\u2700-\u27BF]+)', response.strip())
-                    if emoji_char_match:
-                        emoji = emoji_char_match.group(1)
-                    else:
-                        # Look for emoji in the response
-                        emoji_char_match = re.search(r'([\u2600-\u27BF\U0001F300-\U0001F64F\U0001F680-\U0001F6FF\u2700-\u27BF]+)', response)
-                        if emoji_char_match:
-                            emoji = emoji_char_match.group(1)
-                
-                # If we couldn't find a result, use a default
-                if not result_name:
-                    # Look for any capitalized word that might be the result
-                    capitalized_words = re.findall(r'\b([A-Z][a-z]+)\b', response)
-                    if capitalized_words:
-                        # Filter out common words and the input elements
-                        common_words = ["Result", "Emoji", "Element", "Name", element1, element2]
-                        filtered_words = [word for word in capitalized_words if word not in common_words]
-                        if filtered_words:
-                            result_name = filtered_words[0]
-                
-                # If still no result, try to extract from the response
-                if not result_name:
-                    # Split the response into lines and look for short lines that might be the result
-                    lines = response.strip().split('\n')
-                    for line in lines:
-                        line = line.strip()
-                        # Skip empty lines and lines with common words
-                        if not line or any(word in line.lower() for word in ["result", "emoji", "element", "name"]):
-                            continue
-                        # Skip lines that are too long
-                        if len(line) > 30:
-                            continue
-                        # Skip lines with the input elements
-                        if element1.lower() in line.lower() or element2.lower() in line.lower():
-                            continue
-                        # This might be the result
-                        result_name = line
-                        break
-                
-                # If still no result, use "Unknown"
-                if not result_name:
-                    result_name = "Unknown"
-                
-                # Clean up the result name
-                result_name = result_name.strip()
-                # Remove any markdown formatting
-                result_name = re.sub(r'\*\*|\*|`|_', '', result_name)
-                # Remove any leading/trailing punctuation
-                result_name = re.sub(r'^[^\w]+|[^\w]+$', '', result_name)
-                
-                # Create a fallback result
-                fallback = {
-                    "valid": True,
-                    "result": result_name,
-                    "emoji": emoji,
-                    "raw_response": response  # Include the raw response for debugging
+                # If we can't parse the response, treat it as a refusal
+                refusal = {
+                    "valid": False,
+                    "reason": "Не удалось обработать ответ модели." if lang == "ru" else "Failed to process model response."
                 }
                 
                 # Save to cache
-                self._save_to_cache(element1, element2, fallback, lang)
+                self._save_to_cache(element1, element2, refusal, lang)
                 
-                return fallback
+                return refusal
                 
         except Exception as e:
-            print(f"Error in LLM service: {e}")
-            fallback = {
+            logger.error(f"ERROR IN LLM SERVICE: {e}")
+            logger.error(f"TRACEBACK: {traceback.format_exc()}")
+            refusal = {
                 "valid": False,
                 "reason": f"An error occurred: {str(e)}"
             }
-            return fallback 
+            return refusal 
