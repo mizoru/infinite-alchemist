@@ -1,0 +1,80 @@
+/* Workbench styles */
+.workbench {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.workbench-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.workbench-element {
+  position: absolute;
+  user-select: none;
+  z-index: 10;
+  transition: transform 0.2s ease;
+}
+
+.workbench-element:hover {
+  z-index: 20;
+}
+
+.workbench-element.dragging {
+  z-index: 30;
+  opacity: 0.8;
+}
+
+.workbench-element.can-combine {
+  box-shadow: 0 0 0 2px rgba(0, 255, 0, 0.5);
+}
+
+.workbench-controls {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 40;
+}
+
+.workbench-control-button {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.workbench-control-button:hover {
+  background-color: rgba(0, 0, 0, 0.7);
+  transform: scale(1.1);
+}
+
+.workbench-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  user-select: none;
+  font-size: 1.2rem;
+  width: 80%;
+} 

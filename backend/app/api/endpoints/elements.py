@@ -111,7 +111,7 @@ def create_element(element: ElementCreate, db: Session = Depends(get_db)):
 @router.post("/combine", response_model=CombinationResponse)
 def combine_elements(combination: CombinationRequest, db: Session = Depends(get_db)):
     """
-    Combine two elements to create a new one or get an existing combination.
+    Combine two elements to create a new one.
     """
     # Get the elements from the database
     element1 = db.query(DBElement).filter(DBElement.id == combination.element1_id).first()
@@ -120,16 +120,12 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
     if not element1 or not element2:
         raise HTTPException(status_code=404, detail="One or both elements not found")
     
-    # Update player statistics for combination attempt
-    if combination.player_name:
-        update_player_stats(db, combination.player_name, combinations_tried=1)
-    
     # Check if this combination already exists
-    existing_combination = db.execute(
-        element_combinations.select().where(
-            (element_combinations.c.element1_id == combination.element1_id) &
-            (element_combinations.c.element2_id == combination.element2_id)
-        )
+    existing_combination = db.query(element_combinations).filter(
+        ((element_combinations.c.element1_id == combination.element1_id) & 
+         (element_combinations.c.element2_id == combination.element2_id)) |
+        ((element_combinations.c.element1_id == combination.element2_id) & 
+         (element_combinations.c.element2_id == combination.element1_id))
     ).first()
     
     # If the combination exists, return the result
@@ -152,66 +148,93 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
                 "id": result_element.id,
                 "name": result_element.name,
                 "emoji": result_element.emoji,
-                "description": "",
+                "description": result_element.description,
                 "is_basic": bool(result_element.is_basic),
                 "created_at": result_element.created_at,
-                "discovered_by": None  # Set discovered_by to None for now
+                "discovered_by": None
             },
             "is_new_discovery": False,
             "is_first_discovery": False
         }
     
     # If the combination doesn't exist, use the LLM to determine the result
-    llm_result = llm_service.combine_elements(element1.name, element2.name)
+    llm_result = llm_service.combine_elements(
+        element1.name, 
+        element2.name,
+        lang=combination.lang if hasattr(combination, 'lang') else "en",
+        prompt_name=combination.prompt_name if hasattr(combination, 'prompt_name') else "default"
+    )
+    
+    # Check if the combination is valid
+    if "valid" in llm_result and llm_result["valid"] == False:
+        # Return the refusal response
+        return {
+            "element1_id": combination.element1_id,
+            "element2_id": combination.element2_id,
+            "result_id": None,
+            "result": None,
+            "is_new_discovery": False,
+            "is_first_discovery": False,
+            "error": llm_result.get("reason", "This combination is not possible.")
+        }
     
     # Check if the resulting element already exists
+    if "result" not in llm_result:
+        # Return an error response
+        return {
+            "element1_id": combination.element1_id,
+            "element2_id": combination.element2_id,
+            "result_id": None,
+            "result": None,
+            "is_new_discovery": False,
+            "is_first_discovery": False,
+            "error": "Failed to generate a new element."
+        }
+    
     result_element = db.query(DBElement).filter(DBElement.name == llm_result["result"]).first()
     is_new_discovery = False
     is_first_discovery = False
     
-    # If the resulting element doesn't exist, create it
     if not result_element:
+        # Create the new element
         result_element = DBElement(
             name=llm_result["result"],
-            emoji=llm_result["emoji"],
-            description=""
+            emoji=llm_result.get("emoji", "✨"),
+            description=llm_result.get("description", ""),
+            is_basic=False,
+            created_by=combination.player_name
         )
         db.add(result_element)
-        db.commit()
-        db.refresh(result_element)
+        db.flush()  # Get the ID
         is_new_discovery = True
         is_first_discovery = True
         
-        # Record the discovery in history
-        if combination.player_name:
-            record_discovery(db, result_element.id, combination.player_name, is_first_discovery=True)
-            # Update player statistics for new element discovery
-            update_player_stats(db, combination.player_name, elements_discovered=1, elements_unlocked=1, successful_combinations=1)
-            # Unlock the element for the player
-            unlock_element_for_player(db, combination.player_name, result_element.id)
-    else:
-        # Element exists but might be new to this player
-        is_new_unlock = False
-        if combination.player_name:
-            is_new_unlock = unlock_element_for_player(db, combination.player_name, result_element.id)
-            record_discovery(db, result_element.id, combination.player_name, is_first_discovery=False)
-            # Update player statistics
-            update_player_stats(db, combination.player_name, successful_combinations=1)
-            if is_new_unlock:
-                update_player_stats(db, combination.player_name, elements_unlocked=1)
+        # Record the discovery
+        discovery = DiscoveryHistory(
+            element_id=result_element.id,
+            player_name=combination.player_name,
+            is_first_discovery=True
+        )
+        db.add(discovery)
     
-    # Create the combination record
+    # Record the combination
     db.execute(
         element_combinations.insert().values(
             element1_id=combination.element1_id,
             element2_id=combination.element2_id,
-            result_id=result_element.id,
-            discovered_by=combination.player_name
+            result_id=result_element.id
         )
     )
+    
+    # Update player stats and unlock the element
+    if combination.player_name:
+        is_new_unlock = unlock_element_for_player(db, combination.player_name, result_element.id)
+        update_player_stats(db, combination.player_name, successful_combinations=1)
+        if is_new_unlock:
+            update_player_stats(db, combination.player_name, elements_unlocked=1)
+    
     db.commit()
     
-    # Return the combination result
     return {
         "element1_id": combination.element1_id,
         "element2_id": combination.element2_id,
@@ -220,10 +243,10 @@ def combine_elements(combination: CombinationRequest, db: Session = Depends(get_
             "id": result_element.id,
             "name": result_element.name,
             "emoji": result_element.emoji,
-            "description": "",
+            "description": result_element.description,
             "is_basic": bool(result_element.is_basic),
             "created_at": result_element.created_at,
-            "discovered_by": None  # Set discovered_by to None for now
+            "discovered_by": combination.player_name if is_first_discovery else None
         },
         "is_new_discovery": is_new_discovery,
         "is_first_discovery": is_first_discovery

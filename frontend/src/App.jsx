@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
+import './App.css';
 import Workbench from './components/workbench/Workbench';
 import Library from './components/library/Library';
 import Settings from './components/ui/Settings';
@@ -11,10 +13,11 @@ import useElementStore from './store/elementStore';
 import useSettingsStore from './store/settingsStore';
 
 function App() {
+  const { t } = useTranslation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [discoveryNotification, setDiscoveryNotification] = useState(null);
   const { fetchElements, addBasicElements } = useElementStore();
-  const { playerName, darkMode } = useSettingsStore();
+  const { playerName, darkMode, language } = useSettingsStore();
 
   // Fetch elements on mount
   useEffect(() => {
@@ -38,6 +41,11 @@ function App() {
     }
   }, [addBasicElements]);
 
+  // Refetch elements when language changes
+  useEffect(() => {
+    fetchElements();
+  }, [language, fetchElements]);
+
   // Handle new element discovery
   const handleDiscovery = (discovery) => {
     console.log('New discovery:', discovery);
@@ -60,7 +68,7 @@ function App() {
         {/* Header */}
         <header className={`p-4 border-b ${darkMode ? 'border-accent' : 'border-gray-200'}`}>
           <div className="container mx-auto flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Infinite Alchemist</h1>
+            <h1 className="text-2xl font-bold">{t('app.title')}</h1>
             
             <div className="flex items-center gap-4">
               {playerName && (

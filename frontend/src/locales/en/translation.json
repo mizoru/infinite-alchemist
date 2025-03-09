@@ -1,0 +1,55 @@
+{
+  "app": {
+    "title": "Infinite Alchemist",
+    "tagline": "Combine elements to discover new ones"
+  },
+  "elements": {
+    "water": "Water",
+    "fire": "Fire",
+    "earth": "Earth",
+    "air": "Air"
+  },
+  "ui": {
+    "settings": "Settings",
+    "playerName": "Player Name",
+    "language": "Language",
+    "gameMode": "Game Mode",
+    "darkMode": "Dark Mode",
+    "sound": "Sound",
+    "reset": "Reset Game",
+    "close": "Close",
+    "search": "Search",
+    "comingSoon": "Coming Soon",
+    "enterName": "Enter your name",
+    "resetConfirm": "Are you sure you want to reset your game? All your discovered elements will be lost.",
+    "basic": "Basic",
+    "new": "New",
+    "library": "Library",
+    "clear": "Clear",
+    "elementsDiscovered": "elements discovered",
+    "sortByName": "Sort by name",
+    "newestFirst": "Newest first",
+    "oldestFirst": "Oldest first",
+    "allElements": "All Elements",
+    "basicElements": "Basic Elements",
+    "discovered": "Discovered",
+    "recentDiscoveries": "Recent Discoveries"
+  },
+  "gameModes": {
+    "classic": "Classic Mode",
+    "custom": "Custom Mode"
+  },
+  "languages": {
+    "en": "English",
+    "ru": "Russian"
+  },
+  "messages": {
+    "newElement": "New element discovered!",
+    "firstDiscovery": "You are the first to discover this element!",
+    "error": "An error occurred",
+    "loading": "Loading...",
+    "emptyLibrary": "Your library is empty. Start combining elements!",
+    "dragHint": "Drag elements to combine them",
+    "noResults": "No results found"
+  }
+} 

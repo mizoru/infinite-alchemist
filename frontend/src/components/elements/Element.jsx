@@ -1,9 +1,35 @@
 import React, { useRef } from 'react';
 import { useDrag } from 'react-dnd';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 const Element = ({ element, onClick, onDuplicate, size = 'medium', className = '', isOnWorkbench = false }) => {
+  const { t } = useTranslation();
   const elementRef = useRef(null);
+  
+  // Translate basic element names
+  const getElementName = (element) => {
+    if (element.is_basic === true || element.is_basic === 1) {
+      // Check if this is a basic element that needs translation
+      // Map of element names to translation keys
+      const elementToKey = {
+        'Water': 'water',
+        'Fire': 'fire',
+        'Earth': 'earth',
+        'Air': 'air',
+        'Вода': 'water',
+        'Огонь': 'fire',
+        'Земля': 'earth',
+        'Воздух': 'air'
+      };
+      
+      // If the element name is in our map, use the corresponding key for translation
+      if (element.name in elementToKey) {
+        return t(`elements.${elementToKey[element.name]}`);
+      }
+    }
+    return element.name;
+  };
   
   // Set up drag functionality with React DnD
   // Only enable React DnD dragging when not on the workbench
@@ -14,7 +40,9 @@ const Element = ({ element, onClick, onDuplicate, size = 'medium', className = '
       console.log('Starting drag for element:', element);
       return { 
         id: element.id, 
-        name: element.name, 
+        name: element.name,
+        displayName: getElementName(element), // Add translated name for display
+        emoji: element.emoji,
         workbenchId: element.workbenchId,
         isOnWorkbench: isOnWorkbench
       };
@@ -29,7 +57,7 @@ const Element = ({ element, onClick, onDuplicate, size = 'medium', className = '
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
-  }), [isOnWorkbench, element.id, element.workbenchId]);
+  }), [isOnWorkbench, element.id, element.workbenchId, element.name]);
 
   // Size classes
   const sizeClasses = {
@@ -113,12 +141,12 @@ const Element = ({ element, onClick, onDuplicate, size = 'medium', className = '
           />
         )}
       </div>
-      <span className="element-name font-medium">{element.name}</span>
+      <span className="element-name font-medium">{getElementName(element)}</span>
       {(element.is_basic === true || element.is_basic === 1) && (
-        <span className="ml-2 text-xs bg-blue-500/30 text-blue-200 px-1 rounded">Basic</span>
+        <span className="ml-2 text-xs bg-blue-500/30 text-blue-200 px-1 rounded">{t('ui.basic')}</span>
       )}
       {element.is_new_discovery && (
-        <span className="ml-2 text-xs bg-green-500/30 text-green-200 px-1 rounded">New</span>
+        <span className="ml-2 text-xs bg-green-500/30 text-green-200 px-1 rounded">{t('ui.new')}</span>
       )}
     </motion.div>
   );

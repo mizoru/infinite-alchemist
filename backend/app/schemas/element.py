@@ -15,14 +15,28 @@ class CombinationRequest(BaseModel):
     element1_id: int
     element2_id: int
     player_name: Optional[str] = None
+    lang: str = "en"  # Default to English
+    prompt_name: str = "default"  # Default prompt template
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "element1_id": 1,
+                "element2_id": 2,
+                "player_name": "player123",
+                "lang": "ru",  # Can be "en" or "ru"
+                "prompt_name": "default"
+            }
+        }
 
 class CombinationResponse(BaseModel):
     element1_id: int
     element2_id: int
-    result_id: int
-    result: 'Element'
+    result_id: Optional[int] = None
+    result: Optional['Element'] = None
     is_new_discovery: bool
     is_first_discovery: bool = False
+    error: Optional[str] = None
 
 class Element(ElementBase):
     id: int

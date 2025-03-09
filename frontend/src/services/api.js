@@ -1,4 +1,5 @@
 import axios from 'axios';
+import useSettingsStore from '../store/settingsStore';
 
 // Create an axios instance with default config
 const api = axios.create({
@@ -7,6 +8,13 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Helper to get current language from settings store
+const getCurrentLanguage = () => {
+  // Get language from settings store
+  const state = useSettingsStore.getState();
+  return state.language || 'en';
+};
 
 // API endpoints for elements
 export const elementsApi = {
@@ -46,10 +54,14 @@ export const elementsApi = {
   // Combine two elements
   combineElements: async (element1Id, element2Id, playerName = null) => {
     try {
+      const lang = getCurrentLanguage();
+      console.log(`Combining elements with language: ${lang}`);
+      
       const response = await api.post('/elements/combine', {
         element1_id: element1Id,
         element2_id: element2Id,
         player_name: playerName,
+        lang: lang
       });
       return response.data;
     } catch (error) {

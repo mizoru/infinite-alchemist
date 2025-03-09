@@ -70,18 +70,18 @@ class LLMService:
             print(f"Prompt service not available: {e}")
             self.use_prompt_service = False
     
-    def _get_cache_key(self, element1: str, element2: str) -> str:
+    def _get_cache_key(self, element1: str, element2: str, lang: str = "en") -> str:
         """Generate a consistent cache key for element combinations"""
         # Sort elements alphabetically to ensure consistent keys regardless of order
         sorted_elements = sorted([element1.lower(), element2.lower()])
-        return f"element_combination:{sorted_elements[0]}:{sorted_elements[1]}"
+        return f"element_combination:{lang}:{sorted_elements[0]}:{sorted_elements[1]}"
     
-    def _get_from_cache(self, element1: str, element2: str) -> Optional[Dict[str, Any]]:
+    def _get_from_cache(self, element1: str, element2: str, lang: str = "en") -> Optional[Dict[str, Any]]:
         """Try to get a cached result for the element combination"""
         if not self.cache_enabled:
             return None
             
-        cache_key = self._get_cache_key(element1, element2)
+        cache_key = self._get_cache_key(element1, element2, lang)
         cached_result = self.redis.get(cache_key)
         
         if cached_result:
@@ -91,28 +91,43 @@ class LLMService:
                 return None
         return None
     
-    def _save_to_cache(self, element1: str, element2: str, result: Dict[str, Any]) -> None:
+    def _save_to_cache(self, element1: str, element2: str, result: Dict[str, Any], lang: str = "en") -> None:
         """Save a result to the cache"""
         if not self.cache_enabled:
             return
             
-        cache_key = self._get_cache_key(element1, element2)
+        cache_key = self._get_cache_key(element1, element2, lang)
         self.redis.set(cache_key, json.dumps(result), ex=60*60*24*7)  # Cache for 1 week
     
-    # Fallback in-memory cache using Python's lru_cache
+    # Update the memory cache to include language
     @lru_cache(maxsize=1000)
-    def _memory_cache(self, element1: str, element2: str) -> str:
+    def _memory_cache(self, element1: str, element2: str, lang: str = "en", prompt_name: str = "default") -> str:
         """In-memory cache fallback when Redis is not available"""
         # Generate the prompt
-        prompt = self._get_formatted_prompt(element1, element2)
+        prompt = self._get_formatted_prompt(element1, element2, lang, prompt_name)
         # Get response from LLM
         return self._get_llm_response(prompt)
     
     def _get_formatted_prompt(self, element1: str, element2: str, lang: str = "en", prompt_name: str = "default") -> str:
         """Get a formatted prompt for element combination"""
-        if self.use_prompt_service:
-            return self.prompt_service.format_prompt(lang, prompt_name, element1, element2)
-        else:
+        try:
+            # Try to load language-specific prompts
+            prompt_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "prompts", f"{lang}.json")
+            if os.path.exists(prompt_file):
+                with open(prompt_file, 'r', encoding='utf-8') as f:
+                    prompts = json.load(f)
+                    if prompt_name in prompts:
+                        return prompts[prompt_name].format(element1=element1, element2=element2)
+            
+            # Fallback to English if language not found
+            if lang != "en":
+                print(f"Prompt not found for language {lang}, falling back to English")
+                return self._get_formatted_prompt(element1, element2, "en", prompt_name)
+            
+            # Fallback to default template if nothing else works
+            return self.combination_template.format(element1=element1, element2=element2)
+        except Exception as e:
+            print(f"Error loading prompt: {e}")
             return self.combination_template.format(element1=element1, element2=element2)
     
     def _get_llm_response(self, prompt: str) -> str:
@@ -161,16 +176,16 @@ Now, combine {element1} and {element2}:"""
         Args:
             element1: The name of the first element
             element2: The name of the second element
-            lang: Language code for the prompt
+            lang: Language code for the prompt ("en" or "ru")
             prompt_name: Name of the prompt to use
             
         Returns:
-            A dictionary containing the result element's name, emoji, and description
+            A dictionary containing the result element's name and emoji
         """
         # Try to get from cache first
-        cached_result = self._get_from_cache(element1, element2)
+        cached_result = self._get_from_cache(element1, element2, lang)
         if cached_result:
-            print(f"Cache hit for {element1} + {element2}")
+            print(f"Cache hit for {element1} + {element2} ({lang})")
             return cached_result
         
         # If not in cache, use the LLM
@@ -180,22 +195,19 @@ Now, combine {element1} and {element2}:"""
                 prompt = self._get_formatted_prompt(element1, element2, lang, prompt_name)
                 response = self._get_llm_response(prompt)
             else:
-                # Use the memory cache with default prompt
-                response = self._memory_cache(element1, element2)
+                # Use the memory cache with language support
+                response = self._memory_cache(element1, element2, lang, prompt_name)
             
             # Try to parse the response as JSON
             try:
                 # Clean up the response - remove any markdown code blocks or extra text
                 cleaned_response = response
                 if "```json" in response:
-                    # Extract content between ```json and ```
-                    import re
                     json_blocks = re.findall(r'```(?:json)?(.*?)```', response, re.DOTALL)
                     if json_blocks:
                         cleaned_response = json_blocks[0].strip()
                 
                 # Fix common JSON issues
-                # 1. Replace unquoted emoji characters with quoted strings
                 cleaned_response = re.sub(r'"emoji":\s*([^",}\s]+)', r'"emoji": "\1"', cleaned_response)
                 
                 # Parse the JSON
@@ -205,10 +217,10 @@ Now, combine {element1} and {element2}:"""
                 if "valid" in result and result["valid"] == False:
                     # This is a refusal response
                     if "reason" not in result:
-                        result["reason"] = "This combination is not possible."
+                        result["reason"] = "Эта комбинация невозможна." if lang == "ru" else "This combination is not possible."
                     
                     # Save to cache
-                    self._save_to_cache(element1, element2, result)
+                    self._save_to_cache(element1, element2, result, lang)
                     return result
                 
                 # For valid combinations
@@ -220,7 +232,7 @@ Now, combine {element1} and {element2}:"""
                     result["emoji"] = "✨"
                 
                 # Save to cache
-                self._save_to_cache(element1, element2, result)
+                self._save_to_cache(element1, element2, result, lang)
                     
                 return result
             except (json.JSONDecodeError, ValueError) as e:
@@ -228,7 +240,6 @@ Now, combine {element1} and {element2}:"""
                 print(f"Raw response: {response}")
                 
                 # Try to extract information from non-JSON response
-                import re
                 
                 # Extract result name
                 result_name = None
@@ -330,7 +341,7 @@ Now, combine {element1} and {element2}:"""
                 }
                 
                 # Save to cache
-                self._save_to_cache(element1, element2, fallback)
+                self._save_to_cache(element1, element2, fallback, lang)
                 
                 return fallback
                 

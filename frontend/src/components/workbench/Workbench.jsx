@@ -209,7 +209,11 @@ const Workbench = ({ onDiscovery }) => {
         const centerY = rect.height / 2;
         
         // Add element to center of workbench
-        addElementToWorkbench({ id: element.id, name: element.name }, { 
+        addElementToWorkbench({ 
+          id: element.id, 
+          name: element.name,
+          displayName: element.displayName || element.name // Pass displayName if available
+        }, { 
           x: centerX - 50, // Offset by half element width
           y: centerY - 30  // Offset by half element height
         });
@@ -279,14 +283,19 @@ const Workbench = ({ onDiscovery }) => {
   const addElementToWorkbenchInternal = (element, position) => {
     console.log('Adding element to workbench:', element, 'at position:', position);
     
+    // Use displayName if available, otherwise use name
+    const elementToAdd = {
+      ...element,
+      // If element has a displayName, use it to override the name
+      name: element.displayName || element.name,
+      workbenchId: `${element.id}-${Date.now()}`, // Unique ID for this instance
+      position
+    };
+    
     // Add element to workbench with position
     setElementsOnWorkbench(prev => [
       ...prev, 
-      { 
-        ...element, 
-        workbenchId: `${element.id}-${Date.now()}`, // Unique ID for this instance
-        position 
-      }
+      elementToAdd
     ]);
   };
 

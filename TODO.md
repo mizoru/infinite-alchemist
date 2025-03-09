@@ -112,12 +112,6 @@
 - [ ] Create element combination history
 - [ ] Add social sharing features
 
-<!-- ### Deployment
-- [ ] Set up Docker for containerization
-- [ ] Create deployment scripts
-- [ ] Set up CI/CD pipeline
-- [ ] Deploy to a hosting service -->
-
 ## 🛠️ Recent Fixes (Session Notes)
 
 ### Backend Fixes
@@ -134,6 +128,12 @@
    - Updated the Element schema to handle the `discovered_by` field correctly
    - Modified API endpoints to convert database objects to dictionaries
    - Added support for both boolean and integer values for `is_basic`
+5. Added Russian language support for the backend
+   - Created Russian translations for basic elements in the database
+   - Added Russian prompt templates for the LLM
+   - Updated the LLM service to handle language selection
+   - Fixed error handling in the LLM service
+   - Updated the API to handle language parameter in requests
 
 ### Frontend Fixes
 1. Fixed element visibility issues in the library
@@ -169,6 +169,13 @@
    - Added proper handling of drag events
    - Ensured elements stay within the workbench boundaries
    - Fixed the issue with elements jumping randomly when dragged
+9. Added internationalization support:
+   - Set up i18next for translations
+   - Created English and Russian translation files
+   - Updated components to use translation function
+   - Modified ElementStore to store elements separately for each language
+   - Added language switching functionality
+   - Implemented error handling for element combinations
 
 ### Current Status
 - Backend API is now functioning correctly after fixing the SQLAlchemy and Pydantic validation errors
@@ -179,3 +186,23 @@
 - Elements can be moved around freely on the workbench with proper dragging behavior
 - The application now handles cases where elements aren't found in the store by refetching them
 - The application works even when the backend is not available by using mock data
+- The application supports both English and Russian languages
+- Elements are stored separately for each language
+
+## 📝 Next Tasks
+
+### Internationalization Improvements
+- [ ] Refactor the internationalization architecture:
+  - [ ] Create a proper mapping between element IDs across languages
+  - [ ] Implement a more robust translation system for element names
+  - [ ] Add a language detection system based on browser settings
+  - [ ] Create a language context provider to avoid prop drilling
+  - [ ] Implement proper handling of language-specific elements in the database
+  - [ ] Add language switching without losing workbench state
+  - [ ] Implement automatic translation of newly discovered elements
+  - [ ] Add support for more languages (e.g., Spanish, French, German)
+  - [ ] Create a language selection UI with flags
+  - [ ] Add language-specific fonts and text direction support
+
+### Backend
+- [ ] Create database models for elements and combinations

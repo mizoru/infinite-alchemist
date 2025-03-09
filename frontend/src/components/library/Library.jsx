@@ -1,39 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import Element from '../elements/Element';
 import useElementStore from '../../store/elementStore';
 import useSettingsStore from '../../store/settingsStore';
 
-const SORT_OPTIONS = {
-  alphabetical: { label: 'Sort by name', fn: (a, b) => a.name.localeCompare(b.name) },
-  newest: { label: 'Newest first', fn: (a, b) => new Date(b.created_at) - new Date(a.created_at) },
-  oldest: { label: 'Oldest first', fn: (a, b) => new Date(a.created_at) - new Date(b.created_at) },
-};
-
-const FILTERS = {
-  all: { label: 'All Elements', fn: () => true },
-  basic: { label: 'Basic Elements', fn: (el) => el.is_basic },
-  discovered: { label: 'Discovered', fn: (el) => !el.is_basic },
-  recent: { label: 'Recent Discoveries', fn: (el) => el.is_new_discovery },
-};
-
-// Custom event for adding elements to workbench
-const addToWorkbenchEvent = (element) => {
-  const event = new CustomEvent('add-to-workbench', { 
-    detail: { element } 
-  });
-  window.dispatchEvent(event);
-};
-
 const Library = () => {
-  const { discoveredElements } = useElementStore();
-  const { darkMode } = useSettingsStore();
+  const { t } = useTranslation();
+  const { language, darkMode } = useSettingsStore();
+  const { getDiscoveredElements } = useElementStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('alphabetical');
   const [activeFilter, setActiveFilter] = useState('all');
   const [filteredElements, setFilteredElements] = useState([]);
 
-  // Filter and sort elements when discoveredElements, searchTerm, sortBy, or activeFilter changes
+  // Define sort options with translations
+  const SORT_OPTIONS = {
+    alphabetical: { label: t('ui.sortByName'), fn: (a, b) => a.name.localeCompare(b.name) },
+    newest: { label: t('ui.newestFirst'), fn: (a, b) => new Date(b.created_at) - new Date(a.created_at) },
+    oldest: { label: t('ui.oldestFirst'), fn: (a, b) => new Date(a.created_at) - new Date(b.created_at) },
+  };
+
+  // Define filters with translations
+  const FILTERS = {
+    all: { label: t('ui.allElements'), fn: () => true },
+    basic: { label: t('ui.basicElements'), fn: (el) => el.is_basic },
+    discovered: { label: t('ui.discovered'), fn: (el) => !el.is_basic },
+    recent: { label: t('ui.recentDiscoveries'), fn: (el) => el.is_new_discovery },
+  };
+
+  // Get discovered elements for current language
+  const discoveredElements = getDiscoveredElements();
+  
+  // Filter and sort elements when search term, discovered elements, or language changes
   useEffect(() => {
     let filtered = [...discoveredElements];
     
@@ -51,12 +50,39 @@ const Library = () => {
     filtered.sort(SORT_OPTIONS[sortBy].fn);
     
     setFilteredElements(filtered);
-  }, [discoveredElements, searchTerm, sortBy, activeFilter]);
+  }, [searchTerm, discoveredElements, sortBy, activeFilter, language]);
 
-  // Handle element click
+  // Handle element click (add to workbench)
   const handleElementClick = (element) => {
-    console.log('Element clicked:', element);
-    addToWorkbenchEvent(element);
+    // Get the translated name for the element
+    let displayName = element.name;
+    
+    // For basic elements, get the translated name
+    if (element.is_basic === true || element.is_basic === 1) {
+      const elementToKey = {
+        'Water': 'water',
+        'Fire': 'fire',
+        'Earth': 'earth',
+        'Air': 'air',
+        'Вода': 'water',
+        'Огонь': 'fire',
+        'Земля': 'earth',
+        'Воздух': 'air'
+      };
+      
+      if (element.name in elementToKey) {
+        displayName = t(`elements.${elementToKey[element.name]}`);
+      }
+    }
+    
+    // Dispatch a custom event to add the element to the workbench
+    const event = new CustomEvent('add-to-workbench', { 
+      detail: {
+        ...element,
+        displayName
+      }
+    });
+    window.dispatchEvent(event);
   };
 
   return (
@@ -71,14 +97,14 @@ const Library = () => {
           initial={{ x: -20 }}
           animate={{ x: 0 }}
         >
-          Library
+          {t('ui.library')}
         </motion.h2>
         <motion.div 
           className="text-sm text-textSecondary"
           initial={{ x: 20 }}
           animate={{ x: 0 }}
         >
-          {discoveredElements.length} elements discovered
+          {discoveredElements.length} {t('ui.elementsDiscovered')}
         </motion.div>
       </div>
       
@@ -87,7 +113,7 @@ const Library = () => {
         <div className="flex gap-4">
           <input
             type="text"
-            placeholder={`Search ${discoveredElements.length} elements...`}
+            placeholder={t('ui.search')}
             className={`
               input flex-grow
               ${darkMode ? 'bg-secondary' : 'bg-white'}
@@ -150,12 +176,7 @@ const Library = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              {searchTerm 
-                ? 'No elements match your search'
-                : activeFilter === 'all'
-                  ? 'No elements discovered yet'
-                  : `No ${FILTERS[activeFilter].label.toLowerCase()} yet`
-              }
+              {searchTerm ? t('messages.noResults') : t('messages.emptyLibrary')}
             </motion.div>
           ) : (
             <motion.div 

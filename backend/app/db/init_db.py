@@ -6,12 +6,20 @@ from app.models.element import DBElement, PlayerStats, player_elements
 Base.metadata.create_all(bind=engine)
 
 # Basic elements to initialize
-BASIC_ELEMENTS = [
-    {"name": "Water", "emoji": "💧", "description": "A clear, colorless liquid essential for life.", "is_basic": True},
-    {"name": "Fire", "emoji": "🔥", "description": "The rapid oxidation of material producing heat and light.", "is_basic": True},
-    {"name": "Earth", "emoji": "🌍", "description": "The solid ground beneath us and the material that forms it.", "is_basic": True},
-    {"name": "Air", "emoji": "💨", "description": "The invisible mixture of gases that surrounds the planet.", "is_basic": True},
-]
+BASIC_ELEMENTS = {
+    "en": [
+        {"name": "Water", "emoji": "💧", "description": "A clear, colorless liquid essential for life.", "is_basic": True},
+        {"name": "Fire", "emoji": "🔥", "description": "The rapid oxidation of material producing heat and light.", "is_basic": True},
+        {"name": "Earth", "emoji": "🌍", "description": "The solid ground beneath us and the material that forms it.", "is_basic": True},
+        {"name": "Air", "emoji": "💨", "description": "The invisible mixture of gases that surrounds the planet.", "is_basic": True},
+    ],
+    "ru": [
+        {"name": "Вода", "emoji": "💧", "description": "Прозрачная жидкость, необходимая для жизни.", "is_basic": True},
+        {"name": "Огонь", "emoji": "🔥", "description": "Быстрое окисление материала, производящее тепло и свет.", "is_basic": True},
+        {"name": "Земля", "emoji": "🌍", "description": "Твёрдая поверхность под нами и материал, из которого она состоит.", "is_basic": True},
+        {"name": "Воздух", "emoji": "💨", "description": "Невидимая смесь газов, окружающая планету.", "is_basic": True},
+    ]
+}
 
 def init_db():
     db = SessionLocal()
@@ -22,16 +30,17 @@ def init_db():
             print(f"Database already contains {existing_count} elements. Skipping initialization.")
             return
         
-        # Add basic elements
+        # Add basic elements for each language
         basic_element_ids = []
-        for element_data in BASIC_ELEMENTS:
-            element = DBElement(**element_data)
-            db.add(element)
-            db.flush()  # Flush to get the ID
-            basic_element_ids.append(element.id)
+        for lang, elements in BASIC_ELEMENTS.items():
+            for element_data in elements:
+                element = DBElement(**element_data)
+                db.add(element)
+                db.flush()  # Flush to get the ID
+                basic_element_ids.append(element.id)
         
         db.commit()
-        print(f"Added {len(BASIC_ELEMENTS)} basic elements to the database.")
+        print(f"Added {len(basic_element_ids)} basic elements to the database.")
         
         # Make basic elements available to all existing players
         players = db.query(PlayerStats).all()

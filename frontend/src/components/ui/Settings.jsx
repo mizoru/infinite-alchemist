@@ -1,9 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import useSettingsStore from '../../store/settingsStore';
 import useElementStore from '../../store/elementStore';
 
 const Settings = ({ isOpen, onClose }) => {
+  const { t, i18n } = useTranslation();
+  
   const { 
     playerName, 
     language, 
@@ -20,9 +23,16 @@ const Settings = ({ isOpen, onClose }) => {
   
   const { resetDiscoveredElements, addBasicElements } = useElementStore();
   
+  // Handle language change
+  const handleLanguageChange = (e) => {
+    const newLang = e.target.value;
+    setLanguage(newLang);
+    i18n.changeLanguage(newLang);
+  };
+  
   // Handle game reset
   const handleResetGame = () => {
-    if (window.confirm('Are you sure you want to reset your game? All your discovered elements will be lost.')) {
+    if (window.confirm(t('ui.resetConfirm'))) {
       resetDiscoveredElements();
       addBasicElements();
     }
@@ -46,84 +56,87 @@ const Settings = ({ isOpen, onClose }) => {
         exit={{ scale: 0.9, y: 20 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-2xl font-bold mb-6">Settings</h2>
+        <h2 className="text-2xl font-bold mb-6">{t('ui.settings')}</h2>
         
         <div className="space-y-6">
           {/* Player Name */}
           <div>
-            <label className="block text-sm font-medium mb-2">Player Name</label>
+            <label className="block text-sm font-medium mb-2">{t('ui.playerName')}</label>
             <input
               type="text"
               className="input w-full"
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
-              placeholder="Enter your name"
+              placeholder={t('ui.enterName')}
             />
           </div>
           
           {/* Language */}
           <div>
-            <label className="block text-sm font-medium mb-2">Language</label>
+            <label className="block text-sm font-medium mb-2">{t('ui.language')}</label>
             <select
               className="input w-full"
               value={language}
-              onChange={(e) => setLanguage(e.target.value)}
+              onChange={handleLanguageChange}
             >
-              <option value="en">English</option>
-              <option value="ru" disabled>Russian (Coming Soon)</option>
+              <option value="en">{t('languages.en')}</option>
+              <option value="ru">{t('languages.ru')}</option>
             </select>
           </div>
           
           {/* Game Mode */}
           <div>
-            <label className="block text-sm font-medium mb-2">Game Mode</label>
+            <label className="block text-sm font-medium mb-2">{t('ui.gameMode')}</label>
             <select
               className="input w-full"
               value={gameMode}
               onChange={(e) => setGameMode(e.target.value)}
             >
-              <option value="classic">Classic Mode</option>
-              <option value="custom" disabled>Custom Mode (Coming Soon)</option>
+              <option value="classic">{t('gameModes.classic')}</option>
+              <option value="custom" disabled>{t('gameModes.custom')} ({t('ui.comingSoon')})</option>
             </select>
           </div>
           
           {/* Toggle Switches */}
-          <div className="flex justify-between">
-            <div className="flex items-center">
-              <label className="mr-2">Dark Mode</label>
-              <button
-                className={`w-12 h-6 rounded-full p-1 transition-colors ${darkMode ? 'bg-blue-600' : 'bg-gray-400'}`}
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">{t('ui.darkMode')}</span>
+              <button 
+                className={`w-12 h-6 rounded-full p-1 transition-colors ${darkMode ? 'bg-primary' : 'bg-gray-300'}`}
                 onClick={toggleDarkMode}
               >
-                <div className={`w-4 h-4 rounded-full bg-white transition-transform ${darkMode ? 'translate-x-6' : ''}`} />
+                <div className={`w-4 h-4 rounded-full bg-white transform transition-transform ${darkMode ? 'translate-x-6' : ''}`} />
               </button>
             </div>
             
-            <div className="flex items-center">
-              <label className="mr-2">Sound</label>
-              <button
-                className={`w-12 h-6 rounded-full p-1 transition-colors ${soundEnabled ? 'bg-blue-600' : 'bg-gray-400'}`}
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">{t('ui.sound')}</span>
+              <button 
+                className={`w-12 h-6 rounded-full p-1 transition-colors ${soundEnabled ? 'bg-primary' : 'bg-gray-300'}`}
                 onClick={toggleSound}
               >
-                <div className={`w-4 h-4 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-6' : ''}`} />
+                <div className={`w-4 h-4 rounded-full bg-white transform transition-transform ${soundEnabled ? 'translate-x-6' : ''}`} />
               </button>
             </div>
           </div>
           
-          {/* Action Buttons */}
-          <div className="flex justify-between pt-4 border-t border-accent">
-            <button
-              className="btn bg-red-600 hover:bg-red-700"
+          {/* Reset Game Button */}
+          <div className="pt-4">
+            <button 
+              className="btn btn-danger w-full"
               onClick={handleResetGame}
             >
-              Reset Game
+              {t('ui.reset')}
             </button>
-            
-            <button
-              className="btn"
+          </div>
+          
+          {/* Close Button */}
+          <div className="pt-2">
+            <button 
+              className="btn btn-secondary w-full"
               onClick={onClose}
             >
-              Close
+              {t('ui.close')}
             </button>
           </div>
         </div>
