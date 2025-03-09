@@ -212,21 +212,57 @@ Now, combine {element1} and {element2}:"""
             
             # Try to parse the response as JSON
             try:
-                # Clean up the response - remove any markdown code blocks or extra text
+                # Clean up the response - extract JSON from various formats
                 cleaned_response = response
-                if "```json" in response:
+                
+                # Method 1: Extract JSON from markdown code blocks
+                if "```" in response:
+                    # Look for JSON code blocks
                     json_blocks = re.findall(r'```(?:json)?(.*?)```', response, re.DOTALL)
                     if json_blocks:
                         cleaned_response = json_blocks[0].strip()
                 
+                # Method 2: Look for JSON-like structures with curly braces
+                else:
+                    # Find the first opening brace and the last closing brace
+                    start_idx = response.find('{')
+                    end_idx = response.rfind('}')
+                    
+                    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                        cleaned_response = response[start_idx:end_idx+1]
+                
                 # Fix common JSON issues
+                # 1. Fix unquoted emoji values
                 cleaned_response = re.sub(r'"emoji":\s*([^",}\s]+)', r'"emoji": "\1"', cleaned_response)
+                
+                # 2. Fix missing quotes around keys
+                cleaned_response = re.sub(r'([{,]\s*)(\w+)(\s*:)', r'\1"\2"\3', cleaned_response)
+                
+                # 3. Fix trailing commas
+                cleaned_response = re.sub(r',\s*}', '}', cleaned_response)
+                
+                # 4. Fix missing quotes around string values
+                cleaned_response = re.sub(r':\s*([^",\d{}\[\]\s][^",{}\[\]\s]*)\s*([,}])', r': "\1"\2', cleaned_response)
                 
                 # Log the cleaned response
                 logger.info(f"CLEANED RESPONSE: {cleaned_response}")
                 
                 # Parse the JSON
-                result = json.loads(cleaned_response)
+                try:
+                    result = json.loads(cleaned_response)
+                except json.JSONDecodeError:
+                    # If standard parsing fails, try a more lenient approach with ast.literal_eval
+                    import ast
+                    # Replace single quotes with double quotes for JSON compatibility
+                    eval_ready = cleaned_response.replace("'", '"')
+                    # Use literal_eval to safely evaluate the string as a Python dict
+                    try:
+                        result_dict = ast.literal_eval(eval_ready)
+                        # Convert to proper JSON format
+                        result = json.loads(json.dumps(result_dict))
+                    except (SyntaxError, ValueError) as e:
+                        logger.error(f"Failed to parse with ast.literal_eval: {e}")
+                        raise json.JSONDecodeError(f"Failed to parse JSON: {e}", cleaned_response, 0)
                 
                 # Log the parsed result
                 logger.info(f"PARSED RESULT: {result}")
@@ -243,11 +279,21 @@ Now, combine {element1} and {element2}:"""
                 
                 # For valid combinations
                 if "result" not in result:
-                    raise ValueError("Response missing 'result' field")
+                    # Try to extract result from other fields if present
+                    if "name" in result:
+                        result["result"] = result["name"]
+                    elif "element" in result:
+                        result["result"] = result["element"]
+                    else:
+                        raise ValueError("Response missing 'result' field and no alternative fields found")
                 
                 # Add default emoji if missing
                 if "emoji" not in result:
                     result["emoji"] = "✨"
+                
+                # Ensure valid is set
+                if "valid" not in result:
+                    result["valid"] = True
                 
                 # Save to cache
                 self._save_to_cache(element1, element2, result, lang)
@@ -258,10 +304,30 @@ Now, combine {element1} and {element2}:"""
                 logger.error(f"RAW RESPONSE: {response}")
                 logger.error(f"CLEANED RESPONSE: {cleaned_response}")
                 
-                # If we can't parse the response, treat it as a refusal
+                # Try to extract any text that might be a result
+                result_match = re.search(r'(?:result|name|element)["\s:]+([^"}\s]+)', cleaned_response, re.IGNORECASE)
+                emoji_match = re.search(r'(?:emoji)["\s:]+([^"}\s]+)', cleaned_response, re.IGNORECASE)
+                
+                if result_match:
+                    # We found something that looks like a result, try to use it
+                    logger.info(f"Extracted potential result from failed JSON: {result_match.group(1)}")
+                    
+                    result = {
+                        "valid": True,
+                        "result": result_match.group(1),
+                        "emoji": emoji_match.group(1) if emoji_match else "✨",
+                        "parsed_from_error": True
+                    }
+                    
+                    # Save to cache
+                    self._save_to_cache(element1, element2, result, lang)
+                    return result
+                
+                # If we can't extract a result, treat it as a refusal
                 refusal = {
                     "valid": False,
-                    "reason": "Не удалось обработать ответ модели." if lang == "ru" else "Failed to process model response."
+                    "reason": "Не удалось обработать ответ модели." if lang == "ru" else "Failed to process model response.",
+                    "error_details": str(e)
                 }
                 
                 # Save to cache
@@ -272,8 +338,28 @@ Now, combine {element1} and {element2}:"""
         except Exception as e:
             logger.error(f"ERROR IN LLM SERVICE: {e}")
             logger.error(f"TRACEBACK: {traceback.format_exc()}")
+            
+            # Try to create a meaningful response even in case of error
+            error_message = str(e)
+            
+            # Check if this is a timeout or connection error
+            if "timeout" in error_message.lower() or "connection" in error_message.lower():
+                reason = "Сервер не отвечает. Пожалуйста, попробуйте позже." if lang == "ru" else "Server timeout. Please try again later."
+            elif "rate limit" in error_message.lower() or "too many requests" in error_message.lower():
+                reason = "Слишком много запросов. Пожалуйста, попробуйте позже." if lang == "ru" else "Rate limit exceeded. Please try again later."
+            else:
+                reason = f"Произошла ошибка: {error_message}" if lang == "ru" else f"An error occurred: {error_message}"
+            
             refusal = {
                 "valid": False,
-                "reason": f"An error occurred: {str(e)}"
+                "reason": reason,
+                "error_type": type(e).__name__
             }
+            
+            # Try to save to cache, but don't fail if that also errors
+            try:
+                self._save_to_cache(element1, element2, refusal, lang)
+            except Exception as cache_error:
+                logger.error(f"Failed to save error to cache: {cache_error}")
+                
             return refusal 
