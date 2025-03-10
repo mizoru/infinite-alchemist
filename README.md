@@ -2,6 +2,7 @@
 
 A customizable element combination game inspired by Infinite Craft, with support for multiple languages and LLM integration.
 
+![image](https://github.com/user-attachments/assets/5e44c101-f0d7-4a50-b1b6-c657a8699fbe)
 ## Overview
 
 Infinite Alchemist is a game where players combine elements to discover new ones. Starting with basic elements like Water, Fire, Earth, and Air, players can create thousands of unique combinations. The game uses a Large Language Model (LLM) to generate new elements based on the combinations.
